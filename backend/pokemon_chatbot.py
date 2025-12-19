@@ -419,41 +419,93 @@ class PokemonChatbot:
         
         # 4. Try PokeAPI for unknown Pokemon (self-learning!)
         try:
+            # Handle Mega evolutions: "Charizard X" -> "charizard-mega-x"
             clean_api_name = name_lower.replace(' ', '-').replace('.', '').replace("'", '')
+            
+            # Check for Mega evolution patterns
+            if ' x' in name_lower or '-x' in name_lower:
+                base_name = name_lower.replace(' x', '').replace('-x', '')
+                clean_api_name = f"{base_name}-mega-x"
+            elif ' y' in name_lower or '-y' in name_lower:
+                base_name = name_lower.replace(' y', '').replace('-y', '')
+                clean_api_name = f"{base_name}-mega-y"
+            elif 'mega ' in name_lower:
+                base_name = name_lower.replace('mega ', '')
+                clean_api_name = f"{base_name}-mega"
+            
             response = requests.get(f"https://pokeapi.co/api/v2/pokemon/{clean_api_name}", timeout=5)
             if response.status_code == 200:
                 data = response.json()
-                api_name = data['name'].capitalize()
+                # Use display-friendly name
+                api_name = data['name'].replace('-', ' ').title()
                 # Check if we need to add it to our database
                 if api_name not in self.pokemon_names:
                     print(f"🆕 Found {api_name} via PokeAPI - adding to database...")
-                    pokemon_info, _ = self._fetch_from_pokeapi(name_lower)
+                    self._add_pokemon_from_api(data)
                 return api_name
         except:
             pass
         
         return None
     
+    def _add_pokemon_from_api(self, data):
+        """Add a Pokemon from PokeAPI response to our database"""
+        try:
+            name = data['name'].replace('-', ' ').title()
+            types = [t['type']['name'].capitalize() for t in data['types']]
+            stats = {s['stat']['name']: s['base_stat'] for s in data['stats']}
+            
+            new_pokemon = {
+                'Name': name,
+                'Type1': types[0] if types else 'Unknown',
+                'Type2': types[1] if len(types) > 1 else '',
+                'HP': stats.get('hp', 0),
+                'Attack': stats.get('attack', 0),
+                'Defense': stats.get('defense', 0),
+                'Speed': stats.get('speed', 0),
+                'Generation': 1,  # Default, can't always determine
+                'Legendary': False
+            }
+            
+            # Add to dataframe
+            self.df = pd.concat([self.df, pd.DataFrame([new_pokemon])], ignore_index=True)
+            self.pokemon_names = self.df['Name'].tolist()
+            print(f"✅ Added {name} to database!")
+        except Exception as e:
+            print(f"❌ Failed to add Pokemon: {e}")
+    
     def _get_sprite_url(self, pokemon_name):
         """Get Pokemon sprite URL from PokeAPI GitHub"""
-        matched_name = self._fuzzy_find_pokemon(pokemon_name)
-        if not matched_name:
+        if not pokemon_name:
             return None
         
-        # Get Pokedex ID from our dataframe index + 1 (approximate)
         try:
-            # For accurate IDs, fetch from PokeAPI
-            clean_name = matched_name.lower().replace(' ', '-').replace('.', '').replace("'", '')
+            # Handle Mega evolution patterns
+            name_lower = pokemon_name.lower()
+            clean_name = name_lower.replace(' ', '-').replace('.', '').replace("'", '')
+            
+            # Check for Mega X/Y patterns
+            if ' mega x' in name_lower or 'mega-x' in clean_name:
+                base = clean_name.replace(' mega x', '').replace('mega-x', '').replace('-mega-x', '')
+                clean_name = f"{base}-mega-x"
+            elif ' mega y' in name_lower or 'mega-y' in clean_name:
+                base = clean_name.replace(' mega y', '').replace('mega-y', '').replace('-mega-y', '')
+                clean_name = f"{base}-mega-y"
+            elif ' x' in name_lower:
+                base = name_lower.replace(' x', '')
+                clean_name = f"{base}-mega-x"
+            elif ' y' in name_lower:
+                base = name_lower.replace(' y', '')
+                clean_name = f"{base}-mega-y"
+            
             response = requests.get(f"https://pokeapi.co/api/v2/pokemon/{clean_name}", timeout=5)
             if response.status_code == 200:
                 data = response.json()
                 pokemon_id = data['id']
-                # Return official artwork URL
                 return f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/{pokemon_id}.png"
         except:
             pass
         
-        # Fallback to name-based search (might not work for all)
         return None
     
     def _get_similar_pokemon(self, pokemon_name, n=5):
