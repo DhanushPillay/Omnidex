@@ -15,7 +15,7 @@
         <!-- Header -->
         <header class="chat-header">
             <div class="logo">
-                <span class="logo-icon"><img src="https://p7.hiclipart.com/preview/173/464/909/5bbeb7201905f.jpg"
+                <span class="logo-icon"><img src="{{ url_for('static', filename='pokeball.png') }}"
                         alt="Pokeball"></span>
                 <span class="logo-text">Omnidex</span>
             </div>
@@ -25,8 +25,8 @@
         <!-- Messages Area -->
         <main class="messages-area" id="messages-area">
             <div class="welcome-message" id="welcome">
-                <div class="welcome-icon"><img src="https://p7.hiclipart.com/preview/173/464/909/5bbeb7201905f.jpg"
-                        alt="Pokeball"></div>
+                <div class="welcome-icon"><img src="{{ url_for('static', filename='pokeball.png') }}" alt="Pokeball">
+                </div>
                 <h1>Omnidex</h1>
                 <p>Your Pokemon AI Assistant</p>
                 <div class="suggestions">
