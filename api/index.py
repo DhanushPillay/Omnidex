@@ -117,16 +117,6 @@ def extract_pokemon_name(text):
     
     return None
 
-@app.route('/')
-def home():
-    """Serve the main chat interface"""
-    return send_from_directory('../frontend/templates', 'index.html')
-
-@app.route('/static/<path:filename>')
-def static_files(filename):
-    """Serve static files"""
-    return send_from_directory('../frontend/static', filename)
-
 @app.route('/ask', methods=['POST'])
 def ask():
     """Handle question requests"""
