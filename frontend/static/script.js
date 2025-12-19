@@ -68,7 +68,7 @@ If user asked about story/lore/origin, use the "Lore from Internet" section. Oth
                 console.log('Grok skipped:', e.message);
             }
 
-            addMessage(finalResponse, 'bot', data.image_url);
+            addMessage(finalResponse, 'bot', data.image_url, data.evolution_chain);
         } else {
             addMessage('Something went wrong. Please try again.', 'bot');
         }
@@ -79,7 +79,7 @@ If user asked about story/lore/origin, use the "Lore from Internet" section. Oth
 }
 
 // Add message to chat
-function addMessage(text, sender, imageUrl = null) {
+function addMessage(text, sender, imageUrl = null, evolutionChain = null) {
     const area = document.getElementById('messages-area');
 
     const msg = document.createElement('div');
@@ -96,8 +96,34 @@ function addMessage(text, sender, imageUrl = null) {
     const content = document.createElement('div');
     content.className = 'message-content';
 
-    // Add image if available
-    if (sender === 'bot' && imageUrl) {
+    // Show evolution chain if available (multiple Pokemon images)
+    if (sender === 'bot' && evolutionChain && evolutionChain.length > 0) {
+        const evoContainer = document.createElement('div');
+        evoContainer.className = 'evolution-chain';
+        evolutionChain.forEach((evo, index) => {
+            const evoItem = document.createElement('div');
+            evoItem.className = 'evolution-item';
+            const img = document.createElement('img');
+            img.src = evo.sprite;
+            img.alt = evo.name;
+            img.title = evo.name;
+            evoItem.appendChild(img);
+            const nameLabel = document.createElement('span');
+            nameLabel.textContent = evo.name;
+            evoItem.appendChild(nameLabel);
+            evoContainer.appendChild(evoItem);
+            // Add arrow between evolutions (but not after the last one)
+            if (index < evolutionChain.length - 1 && evolutionChain[index + 1].level > evo.level) {
+                const arrow = document.createElement('span');
+                arrow.className = 'evolution-arrow';
+                arrow.textContent = '→';
+                evoContainer.appendChild(arrow);
+            }
+        });
+        content.appendChild(evoContainer);
+    }
+    // Otherwise show single image if available
+    else if (sender === 'bot' && imageUrl) {
         const imgContainer = document.createElement('div');
         imgContainer.className = 'pokemon-image';
         const img = document.createElement('img');

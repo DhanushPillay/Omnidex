@@ -1174,25 +1174,30 @@ Instructions:
                     chain_data = chain_resp.json()
                     result = f"🔄 {matched_name} Evolution Chain:\n"
                     
-                    # Parse evolution chain
+                    # Parse evolution chain with image URLs
                     chain = chain_data['chain']
                     evo_list = []
                     
                     def parse_chain(node, level=0):
                         name = node['species']['name'].title()
-                        evo_list.append((name, level))
+                        pokemon_id = int(node['species']['url'].split('/')[-2])
+                        sprite_url = f"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/{pokemon_id}.png"
+                        evo_list.append({'name': name, 'level': level, 'sprite': sprite_url, 'id': pokemon_id})
                         for evo in node.get('evolves_to', []):
                             parse_chain(evo, level + 1)
                     
                     parse_chain(chain)
                     
-                    # Format chain
-                    for name, level in evo_list:
-                        prefix = "└─> " if level > 0 else ""
-                        indent = "    " * level
-                        is_current = name.lower() == matched_name.lower()
+                    # Store evolution sprites for frontend
+                    self.conversation_context['evolution_chain'] = evo_list
+                    
+                    # Format text chain
+                    for evo in evo_list:
+                        prefix = "└─> " if evo['level'] > 0 else ""
+                        indent = "    " * evo['level']
+                        is_current = evo['name'].lower() == matched_name.lower()
                         marker = " ⭐" if is_current else ""
-                        result += f"{indent}{prefix}{name}{marker}\n"
+                        result += f"{indent}{prefix}{evo['name']}{marker}\n"
                     
                     return result
                     

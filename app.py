@@ -43,6 +43,11 @@ def ask():
         story_keywords = ['story', 'lore', 'backstory', 'origin', 'history', 'found', 'created', 'discovered', 'legend']
         is_story_query = any(kw in question.lower() for kw in story_keywords)
         
+        # If no Pokemon name found, try to use context from response or last_pokemon
+        if not pokemon_name:
+            # Check if there's a Pokemon name in the conversation context
+            pokemon_name = chatbot.conversation_context.get('last_pokemon')
+        
         if pokemon_name:
             image_url = chatbot._get_sprite_url(pokemon_name)
             chatbot.conversation_context['last_pokemon'] = pokemon_name
@@ -80,13 +85,20 @@ def ask():
                 except:
                     pass
         
+        # Get evolution chain if available
+        evolution_chain = chatbot.conversation_context.get('evolution_chain')
+        # Clear it after reading so it doesn't persist to next query
+        if evolution_chain:
+            chatbot.conversation_context['evolution_chain'] = None
+        
         return jsonify({
             'success': True,
             'response': response,
             'image_url': image_url,
             'pokemon_name': pokemon_name,
             'pokemon_context': pokemon_context,
-            'lore_info': lore_info  # Web search results for stories
+            'lore_info': lore_info,
+            'evolution_chain': evolution_chain  # Evolution sprites
         })
     
     except Exception as e:
