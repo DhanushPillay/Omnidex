@@ -1123,44 +1123,83 @@ Instructions:
         return result
     
     def _get_evolution_info(self, pokemon_name):
-        """Get evolution information for a Pokemon"""
+        """Get evolution information for a Pokemon from local data or PokeAPI"""
         matched_name = self._fuzzy_find_pokemon(pokemon_name)
         if not matched_name:
             return f"Pokemon '{pokemon_name}' not found."
         
-        if matched_name not in self.EVOLUTION_DATA:
-            return f"I don't have evolution data for {matched_name} yet. Try asking about Pikachu, Charmander, Eevee, or other popular Pokemon!"
-        
-        evo_data = self.EVOLUTION_DATA[matched_name]
-        result = f"🔄 {matched_name} Evolution Info:\n"
-        
-        # Previous evolution
-        if 'evolves_from' in evo_data:
-            result += f"• Evolves from: {evo_data['evolves_from']}\n"
-        
-        # Next evolution
-        if 'evolves_to' in evo_data:
-            evolves_to = evo_data['evolves_to']
-            method = evo_data.get('method', 'unknown')
+        # Try local data first
+        if matched_name in self.EVOLUTION_DATA:
+            evo_data = self.EVOLUTION_DATA[matched_name]
+            result = f"🔄 {matched_name} Evolution Info:\n"
             
-            if isinstance(evolves_to, list):
-                # Multiple evolutions (like Eevee)
-                result += f"• Can evolve into:\n"
-                for evo in evolves_to:
-                    result += f"  - {evo}\n"
-            else:
-                if method == 'level':
-                    result += f"• Evolves to: {evolves_to} at level {evo_data.get('level', '?')}\n"
-                elif method == 'trade':
-                    result += f"• Evolves to: {evolves_to} when traded\n"
-                elif method == 'friendship':
-                    result += f"• Evolves to: {evolves_to} with high friendship\n"
+            if 'evolves_from' in evo_data:
+                result += f"• Evolves from: {evo_data['evolves_from']}\n"
+            
+            if 'evolves_to' in evo_data:
+                evolves_to = evo_data['evolves_to']
+                method = evo_data.get('method', 'unknown')
+                
+                if isinstance(evolves_to, list):
+                    result += f"• Can evolve into:\n"
+                    for evo in evolves_to:
+                        result += f"  - {evo}\n"
                 else:
-                    result += f"• Evolves to: {evolves_to} using {method}\n"
-        else:
-            result += "• This is the final evolution!\n"
+                    if method == 'level':
+                        result += f"• Evolves to: {evolves_to} at level {evo_data.get('level', '?')}\n"
+                    elif method == 'trade':
+                        result += f"• Evolves to: {evolves_to} when traded\n"
+                    elif method == 'friendship':
+                        result += f"• Evolves to: {evolves_to} with high friendship\n"
+                    else:
+                        result += f"• Evolves to: {evolves_to} using {method}\n"
+            else:
+                result += "• This is the final evolution!\n"
+            
+            return result
         
-        return result
+        # Fetch from PokeAPI if not in local data
+        try:
+            clean_name = matched_name.lower().replace(' ', '-').replace('.', '').replace("'", '')
+            
+            # Get Pokemon species for evolution chain
+            species_resp = requests.get(f"https://pokeapi.co/api/v2/pokemon-species/{clean_name}", timeout=5)
+            if species_resp.status_code == 200:
+                species_data = species_resp.json()
+                evo_chain_url = species_data['evolution_chain']['url']
+                
+                # Get evolution chain
+                chain_resp = requests.get(evo_chain_url, timeout=5)
+                if chain_resp.status_code == 200:
+                    chain_data = chain_resp.json()
+                    result = f"🔄 {matched_name} Evolution Chain:\n"
+                    
+                    # Parse evolution chain
+                    chain = chain_data['chain']
+                    evo_list = []
+                    
+                    def parse_chain(node, level=0):
+                        name = node['species']['name'].title()
+                        evo_list.append((name, level))
+                        for evo in node.get('evolves_to', []):
+                            parse_chain(evo, level + 1)
+                    
+                    parse_chain(chain)
+                    
+                    # Format chain
+                    for name, level in evo_list:
+                        prefix = "└─> " if level > 0 else ""
+                        indent = "    " * level
+                        is_current = name.lower() == matched_name.lower()
+                        marker = " ⭐" if is_current else ""
+                        result += f"{indent}{prefix}{name}{marker}\n"
+                    
+                    return result
+                    
+        except Exception as e:
+            print(f"PokeAPI evolution error: {e}")
+        
+        return f"I don't have evolution data for {matched_name} yet."
     
     # ============ SELF-LEARNING METHODS ============
     
