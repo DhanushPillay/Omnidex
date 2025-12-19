@@ -115,9 +115,12 @@ def extract_pokemon_name(text):
     
     return None
 
-@app.route('/ask', methods=['POST'])
+@app.route('/ask', methods=['GET', 'POST'])
 def ask():
     """Handle question requests"""
+    if request.method == 'GET':
+        return jsonify({'status': 'API is running', 'version': '1.0.0'})
+    
     try:
         data = request.get_json()
         question = data.get('question', '')
