@@ -1,3 +1,5 @@
-# Minimal requirements for Vercel
-flask>=2.0.0
-requests>=2.25.0
+# Root requirements for Vercel
+fastapi
+uvicorn
+requests
+pydantic
