@@ -1,13 +1,23 @@
-"""
-Vercel Serverless Function - Lightweight Version
-Uses PokeAPI directly instead of local CSV + ML
-"""
-from flask import Flask, request, jsonify, send_from_directory
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 import requests
 import os
-import json
 
-app = Flask(__name__)
+# Initialize FastAPI
+app = FastAPI()
+
+# Enable CORS for frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class QuestionRequest(BaseModel):
+    question: str
 
 # Pokemon type chart for weaknesses/strengths
 TYPE_CHART = {
@@ -31,14 +41,14 @@ TYPE_CHART = {
     'fairy': {'weak': ['poison', 'steel'], 'strong': ['fighting', 'dragon', 'dark']},
 }
 
-# Conversation context
+# Simple in-memory context (note: serverless functions reset, so this is temporary)
 context = {'last_pokemon': None}
 
 def get_pokemon_from_api(name):
     """Fetch Pokemon data from PokeAPI"""
     try:
         clean_name = name.lower().replace(' ', '-').replace('.', '').replace("'", '')
-        resp = requests.get(f"https://pokeapi.co/api/v2/pokemon/{clean_name}", timeout=10)
+        resp = requests.get(f"https://pokeapi.co/api/v2/pokemon/{clean_name}", timeout=5)
         if resp.status_code == 200:
             data = resp.json()
             types = [t['type']['name'] for t in data['types']]
@@ -89,10 +99,9 @@ def generate_response(pokemon, question):
 
 def extract_pokemon_name(text):
     """Extract Pokemon name from text"""
-    # Common Pokemon for quick lookup
     common = ['pikachu', 'charizard', 'mewtwo', 'mew', 'gengar', 'dragonite', 'blastoise', 
               'venusaur', 'eevee', 'snorlax', 'gyarados', 'alakazam', 'machamp', 'raichu',
-              'bulbasaur', 'squirtle', 'charmander', 'jigglypuff', 'meowth', 'psyduck']
+              'bulbasaur', 'squirtle', 'charmander', 'jigglypuff', 'meowth', 'psyduck', 'lucario', 'greninja']
     
     text_lower = text.lower()
     
@@ -108,46 +117,47 @@ def extract_pokemon_name(text):
     
     for word in words:
         if len(word) > 2 and word not in skip_words:
-            # Test if it's a valid Pokemon via API
-            pokemon = get_pokemon_from_api(word)
-            if pokemon:
-                return word
-    
+            # Simple heuristic before API call
+            return word
+            
     return None
 
-@app.route('/ask', methods=['GET', 'POST'])
-def ask():
-    """Handle question requests"""
-    if request.method == 'GET':
-        return jsonify({'status': 'API is running', 'version': '1.0.0'})
-    
+@app.get("/ask")
+async def health_check():
+    return {"status": "FastAPI is running", "version": "2.0.0"}
+
+@app.post("/ask")
+async def ask_question(request: QuestionRequest):
     try:
-        data = request.get_json()
-        question = data.get('question', '')
-        
+        question = request.question
         if not question:
-            return jsonify({'error': 'No question provided'}), 400
+            raise HTTPException(status_code=400, detail="No question provided")
         
         # Extract Pokemon name
         pokemon_name = extract_pokemon_name(question)
         
-        # Use context if no Pokemon found
+        # Retrieve context (limited since serverless resets, but useful for single session if container warm)
         if not pokemon_name and context.get('last_pokemon'):
             pokemon_name = context['last_pokemon']
         
         # Get Pokemon data from API
-        pokemon = get_pokemon_from_api(pokemon_name) if pokemon_name else None
+        pokemon = None
+        if pokemon_name:
+            pokemon = get_pokemon_from_api(pokemon_name)
+            # Retrying with context if fuzzy match failed
+            if not pokemon: 
+                pokemon_name = None 
         
         # Update context
         if pokemon:
             context['last_pokemon'] = pokemon['name'].lower()
         
         # Generate response
-        response = generate_response(pokemon, question)
+        response_text = generate_response(pokemon, question)
         
-        return jsonify({
+        return {
             'success': True,
-            'response': response,
+            'response': response_text,
             'image_url': pokemon['sprite'] if pokemon else None,
             'pokemon_name': pokemon['name'] if pokemon else None,
             'pokemon_context': {
@@ -163,17 +173,12 @@ def ask():
             } if pokemon else None,
             'lore_info': None,
             'evolution_chain': None
-        })
+        }
     
     except Exception as e:
-        return jsonify({
+        print(f"Error: {str(e)}")
+        return {
             'success': False,
-            'error': str(e)
-        }), 500
-
-# Vercel handler
-def handler(environ, start_response):
-    return app(environ, start_response)
-
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+            'error': str(e),
+            'response': "I encountered an error. Please try again!"
+        }

@@ -1,3 +1,5 @@
-# MINIMAL requirements for Vercel (under 50MB total)
-flask>=2.0.0
-requests>=2.25.0
+# FastAPI for Vercel
+fastapi
+uvicorn
+requests
+pydantic
