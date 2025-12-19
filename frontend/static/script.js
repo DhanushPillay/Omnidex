@@ -1,3 +1,6 @@
+// Conversation history for multi-turn context
+let conversationHistory = [];
+
 // Send message on button click
 async function sendMessage() {
     const input = document.getElementById('user-input');
@@ -23,7 +26,7 @@ async function sendMessage() {
         if (data.success) {
             let finalResponse = data.response;
 
-            // Enhance with Grok AI using rich context from CSV + web search
+            // Enhance with Grok AI using rich context + enhanced personality
             try {
                 if (typeof puter !== 'undefined' && puter.ai) {
                     // Build rich context string if we have Pokemon data
@@ -48,8 +51,30 @@ ${ctx.strong_against ? 'Strong against: ' + ctx.strong_against.join(', ') : ''}`
                         ).join('\n');
                     }
 
+                    // Add conversation history for context
+                    let historyStr = '';
+                    if (conversationHistory.length > 0) {
+                        const recentHistory = conversationHistory.slice(-4);
+                        historyStr = '\n\nRecent Conversation:\n' + recentHistory.map(h =>
+                            `${h.role}: ${h.content}`
+                        ).join('\n');
+                    }
+
+                    // Track this exchange
+                    conversationHistory.push({ role: 'User', content: question });
+
                     const grokResponse = await puter.ai.chat(
-                        `You are Omnidex, the all-knowing Pokemon AI assistant. Using the data below, give a natural response (2-4 sentences, 1-2 emoji).
+                        `You are Omnidex, an enthusiastic Pokemon Professor AI assistant. 
+
+PERSONALITY:
+- Speak like a friendly Pokemon trainer and researcher
+- Show genuine enthusiasm about Pokemon, especially rare and legendary ones
+- Share fun facts and trivia when relevant
+- Reference Pokemon regions (Kanto, Johto, Unova, etc.) naturally
+- Use 1-2 Pokemon-themed emojis 
+- Be warm, helpful, and engaging
+- Remember what was discussed earlier if history is provided
+${historyStr}
 
 User asked: "${question}"
 
@@ -57,11 +82,23 @@ Pokemon Database:
 ${contextStr}
 ${loreStr}
 
-If user asked about story/lore/origin, use the "Lore from Internet" section. Otherwise use stats. Be engaging!`,
-                        { model: 'x-ai/grok-4.1-fast', max_tokens: 250 }
+RESPONSE GUIDELINES:
+- 2-4 sentences, natural and conversational
+- If comparing Pokemon, give battle insights
+- If discussing evolution, mention how exciting the transformation is
+- If discussing lore/story, be a storyteller
+- If discussing stats, be analytical but fun
+- Always sound like you genuinely love Pokemon!`,
+                        { model: 'x-ai/grok-4.1-fast', max_tokens: 300 }
                     );
                     if (grokResponse?.message?.content) {
                         finalResponse = grokResponse.message.content;
+                        // Track bot response
+                        conversationHistory.push({ role: 'Omnidex', content: finalResponse.substring(0, 100) });
+                        // Keep only last 10 exchanges
+                        if (conversationHistory.length > 10) {
+                            conversationHistory = conversationHistory.slice(-10);
+                        }
                     }
                 }
             } catch (e) {
@@ -189,6 +226,8 @@ function handleKeyPress(event) {
 
 // Clear chat
 function clearChat() {
+    // Reset conversation history
+    conversationHistory = [];
     const area = document.getElementById('messages-area');
     area.innerHTML = `
         <div class="welcome-message" id="welcome">

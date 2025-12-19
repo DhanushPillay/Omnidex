@@ -92,11 +92,15 @@ class PokemonChatbot:
         # Store Pokemon names for fuzzy matching
         self.pokemon_names = self.df['Name'].tolist()
         
-        # Conversation memory - remember context
+        # Enhanced Conversation Memory - Multi-turn context
         self.conversation_context = {
             'last_pokemon': None,
             'last_intent': None,
-            'conversation_history': []
+            'conversation_history': [],      # Full history [{role, content, pokemon, intent}]
+            'mentioned_pokemon': [],          # All Pokemon mentioned in session
+            'compared_pokemon': [],           # Pokemon being compared
+            'current_topic': None,            # battle, evolution, stats, lore, etc.
+            'evolution_chain': None           # For evolution queries
         }
         
         # Self-learning: cache for learned data from web
@@ -106,6 +110,7 @@ class PokemonChatbot:
         # Initialize ML components
         self._init_intent_classifier()
         self._init_recommendation_system()
+        self._init_semantic_model()  # New: Semantic understanding
         
         # Initialize Gemini model
         self.gemini_model = None
@@ -124,6 +129,8 @@ class PokemonChatbot:
         print(f"✅ Type Effectiveness Chart loaded (18 types)")
         print(f"✅ Evolution Data for {len(self.EVOLUTION_DATA)} Pokemon")
         print(f"✅ KNN Recommendation System ready")
+        print(f"✅ Semantic Understanding: ENABLED")
+        print(f"✅ Multi-Turn Memory: ENABLED")
         print(f"✅ Self-Learning Mode: ENABLED (PokeAPI + Web Search)")
     
     def _init_intent_classifier(self):
@@ -372,6 +379,98 @@ class PokemonChatbot:
         self.knn_model = NearestNeighbors(n_neighbors=6, metric='euclidean')
         self.knn_model.fit(self.normalized_features)
     
+    def _init_semantic_model(self):
+        """Initialize semantic model for advanced understanding"""
+        # Semantic model is already initialized in intent classifier
+        # This method handles additional semantic features
+        
+        # Pre-compute Pokemon name embeddings for fuzzy semantic matching
+        if getattr(self, 'use_semantic', False) and hasattr(self, 'semantic_model'):
+            try:
+                # Encode all Pokemon names for semantic matching
+                self.pokemon_embeddings = self.semantic_model.encode(self.pokemon_names)
+                print("✅ Pokemon name embeddings computed for semantic matching!")
+            except:
+                self.pokemon_embeddings = None
+        else:
+            self.pokemon_embeddings = None
+    
+    # ============ CONVERSATION MEMORY METHODS ============
+    
+    def _add_to_history(self, role, content, pokemon=None, intent=None):
+        """Add an exchange to conversation history"""
+        entry = {
+            'role': role,  # 'user' or 'bot'
+            'content': content[:200],  # Truncate for memory
+            'pokemon': pokemon,
+            'intent': intent
+        }
+        self.conversation_context['conversation_history'].append(entry)
+        
+        # Keep only last 10 exchanges (sliding window)
+        if len(self.conversation_context['conversation_history']) > 10:
+            self.conversation_context['conversation_history'] = \
+                self.conversation_context['conversation_history'][-10:]
+        
+        # Track mentioned Pokemon
+        if pokemon and pokemon not in self.conversation_context['mentioned_pokemon']:
+            self.conversation_context['mentioned_pokemon'].append(pokemon)
+            # Keep last 5 mentioned Pokemon
+            if len(self.conversation_context['mentioned_pokemon']) > 5:
+                self.conversation_context['mentioned_pokemon'] = \
+                    self.conversation_context['mentioned_pokemon'][-5:]
+    
+    def _get_context_summary(self):
+        """Get a summary of recent conversation for AI context"""
+        history = self.conversation_context['conversation_history']
+        if not history:
+            return ""
+        
+        summary_parts = []
+        for entry in history[-5:]:  # Last 5 exchanges
+            role = "User" if entry['role'] == 'user' else "Omnidex"
+            content = entry['content'][:100]
+            if entry['pokemon']:
+                summary_parts.append(f"{role} (about {entry['pokemon']}): {content}")
+            else:
+                summary_parts.append(f"{role}: {content}")
+        
+        return "\n".join(summary_parts)
+    
+    def _resolve_pronoun(self, text):
+        """Resolve pronouns like 'it', 'this one', 'that Pokemon' to actual names"""
+        pronouns = ['it', 'its', 'this one', 'that one', 'this pokemon', 'that pokemon', 
+                    'the first one', 'the second one', 'the first', 'the second']
+        text_lower = text.lower()
+        
+        for pronoun in pronouns:
+            if pronoun in text_lower:
+                # 'first' refers to first in comparison, 'second' to second
+                if 'first' in pronoun and len(self.conversation_context.get('compared_pokemon', [])) >= 1:
+                    return self.conversation_context['compared_pokemon'][0]
+                elif 'second' in pronoun and len(self.conversation_context.get('compared_pokemon', [])) >= 2:
+                    return self.conversation_context['compared_pokemon'][1]
+                # Otherwise use last mentioned Pokemon
+                elif self.conversation_context.get('last_pokemon'):
+                    return self.conversation_context['last_pokemon']
+        
+        return None
+    
+    def _detect_topic(self, intent, question):
+        """Detect the current conversation topic"""
+        topic_map = {
+            'pokemon_info': 'stats',
+            'weakness': 'battle',
+            'strength': 'battle',
+            'compare': 'battle',
+            'evolution': 'evolution',
+            'context_evolution': 'evolution',
+            'context_story': 'lore',
+            'similar': 'recommendation',
+            'type_query': 'types'
+        }
+        return topic_map.get(intent, 'general')
+    
     def _classify_intent(self, question):
         """Use Semantic Embeddings or TF-IDF to classify user intent"""
         question_lower = question.lower()
@@ -582,9 +681,24 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                     print(f"Gemini greeting error: {e}")
             return "Hey there! 👋 I'm PokéBot, your Pokemon expert! Ask me anything about Pokemon - stats, stories, evolutions, comparisons, or let me recommend similar Pokemon!"
         
+        # ============ PRONOUN RESOLUTION ============
+        # Check if user used pronouns like "it", "its", "this one"
+        resolved_pokemon = self._resolve_pronoun(question_lower)
+        if resolved_pokemon:
+            # Replace pronouns with actual Pokemon name for processing
+            for pronoun in ['it', 'its', 'this one', 'that one', 'this pokemon', 'that pokemon']:
+                if pronoun in question_lower:
+                    question_lower = question_lower.replace(pronoun, resolved_pokemon.lower())
+        
+        # Add user message to history
+        self._add_to_history('user', question)
+        
         # Use ML to classify intent
         intent, confidence = self._classify_intent(question_lower)
         print(f"🤖 ML Intent: {intent} (confidence: {confidence:.2f})")
+        
+        # Detect and update topic
+        self.conversation_context['current_topic'] = self._detect_topic(intent, question_lower)
         
         # Handle based on detected intent
         if intent == "type_query":
