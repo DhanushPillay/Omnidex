@@ -1,31 +1,121 @@
 """
-Vercel Serverless Function for Omnidex Pokemon Chatbot
+Vercel Serverless Function - Lightweight Version
+Uses PokeAPI directly instead of local CSV + ML
 """
-import sys
-import os
-
-# Add paths for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'backend'))
-
 from flask import Flask, request, jsonify, send_from_directory
+import requests
+import os
 import json
 
-# Initialize Flask app
 app = Flask(__name__, 
             static_folder='../frontend/static',
             template_folder='../frontend/templates')
 
-# Lazy load chatbot to avoid cold start timeout
-chatbot = None
+# Pokemon type chart for weaknesses/strengths
+TYPE_CHART = {
+    'normal': {'weak': ['fighting'], 'strong': []},
+    'fire': {'weak': ['water', 'ground', 'rock'], 'strong': ['grass', 'ice', 'bug', 'steel']},
+    'water': {'weak': ['electric', 'grass'], 'strong': ['fire', 'ground', 'rock']},
+    'electric': {'weak': ['ground'], 'strong': ['water', 'flying']},
+    'grass': {'weak': ['fire', 'ice', 'poison', 'flying', 'bug'], 'strong': ['water', 'ground', 'rock']},
+    'ice': {'weak': ['fire', 'fighting', 'rock', 'steel'], 'strong': ['grass', 'ground', 'flying', 'dragon']},
+    'fighting': {'weak': ['flying', 'psychic', 'fairy'], 'strong': ['normal', 'ice', 'rock', 'dark', 'steel']},
+    'poison': {'weak': ['ground', 'psychic'], 'strong': ['grass', 'fairy']},
+    'ground': {'weak': ['water', 'grass', 'ice'], 'strong': ['fire', 'electric', 'poison', 'rock', 'steel']},
+    'flying': {'weak': ['electric', 'ice', 'rock'], 'strong': ['grass', 'fighting', 'bug']},
+    'psychic': {'weak': ['bug', 'ghost', 'dark'], 'strong': ['fighting', 'poison']},
+    'bug': {'weak': ['fire', 'flying', 'rock'], 'strong': ['grass', 'psychic', 'dark']},
+    'rock': {'weak': ['water', 'grass', 'fighting', 'ground', 'steel'], 'strong': ['fire', 'ice', 'flying', 'bug']},
+    'ghost': {'weak': ['ghost', 'dark'], 'strong': ['psychic', 'ghost']},
+    'dragon': {'weak': ['ice', 'dragon', 'fairy'], 'strong': ['dragon']},
+    'dark': {'weak': ['fighting', 'bug', 'fairy'], 'strong': ['psychic', 'ghost']},
+    'steel': {'weak': ['fire', 'fighting', 'ground'], 'strong': ['ice', 'rock', 'fairy']},
+    'fairy': {'weak': ['poison', 'steel'], 'strong': ['fighting', 'dragon', 'dark']},
+}
 
-def get_chatbot():
-    global chatbot
-    if chatbot is None:
-        from pokemon_chatbot import PokemonChatbot
-        csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'pokemon_data.csv')
-        chatbot = PokemonChatbot(csv_path)
-    return chatbot
+# Conversation context
+context = {'last_pokemon': None}
+
+def get_pokemon_from_api(name):
+    """Fetch Pokemon data from PokeAPI"""
+    try:
+        clean_name = name.lower().replace(' ', '-').replace('.', '').replace("'", '')
+        resp = requests.get(f"https://pokeapi.co/api/v2/pokemon/{clean_name}", timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            types = [t['type']['name'] for t in data['types']]
+            stats = {s['stat']['name']: s['base_stat'] for s in data['stats']}
+            sprite = data['sprites']['other']['official-artwork']['front_default']
+            
+            return {
+                'name': data['name'].title(),
+                'id': data['id'],
+                'types': types,
+                'hp': stats.get('hp', 0),
+                'attack': stats.get('attack', 0),
+                'defense': stats.get('defense', 0),
+                'speed': stats.get('speed', 0),
+                'sprite': sprite,
+                'weak_to': TYPE_CHART.get(types[0], {}).get('weak', []),
+                'strong_against': TYPE_CHART.get(types[0], {}).get('strong', [])
+            }
+    except Exception as e:
+        print(f"PokeAPI error: {e}")
+    return None
+
+def generate_response(pokemon, question):
+    """Generate a natural response about the Pokemon"""
+    if not pokemon:
+        return "I couldn't find that Pokemon. Try checking the spelling!"
+    
+    q = question.lower()
+    name = pokemon['name']
+    types = '/'.join([t.title() for t in pokemon['types']])
+    
+    # Weakness query
+    if any(w in q for w in ['weak', 'weakness', 'vulnerable', 'counter']):
+        weak = ', '.join([w.title() for w in pokemon['weak_to']]) if pokemon['weak_to'] else 'nothing specifically'
+        return f"⚡ {name} ({types}) is weak to: {weak}. Watch out for those types in battle!"
+    
+    # Strength query
+    if any(w in q for w in ['strong', 'effective', 'beat', 'counter']):
+        strong = ', '.join([s.title() for s in pokemon['strong_against']]) if pokemon['strong_against'] else 'various types'
+        return f"💪 {name} is super effective against: {strong}. Great offensive coverage!"
+    
+    # Stats query
+    if any(w in q for w in ['stat', 'hp', 'attack', 'defense', 'speed']):
+        return f"📊 {name} Stats: HP {pokemon['hp']}, Attack {pokemon['attack']}, Defense {pokemon['defense']}, Speed {pokemon['speed']}"
+    
+    # General info
+    return f"🔥 {name} is a {types} type Pokemon! HP: {pokemon['hp']}, Attack: {pokemon['attack']}, Defense: {pokemon['defense']}, Speed: {pokemon['speed']}. It's weak to {', '.join([w.title() for w in pokemon['weak_to'][:3]])}."
+
+def extract_pokemon_name(text):
+    """Extract Pokemon name from text"""
+    # Common Pokemon for quick lookup
+    common = ['pikachu', 'charizard', 'mewtwo', 'mew', 'gengar', 'dragonite', 'blastoise', 
+              'venusaur', 'eevee', 'snorlax', 'gyarados', 'alakazam', 'machamp', 'raichu',
+              'bulbasaur', 'squirtle', 'charmander', 'jigglypuff', 'meowth', 'psyduck']
+    
+    text_lower = text.lower()
+    
+    # Check common Pokemon first
+    for poke in common:
+        if poke in text_lower:
+            return poke
+    
+    # Try each word
+    words = text_lower.replace('?', '').replace('!', '').split()
+    skip_words = ['tell', 'me', 'about', 'what', 'is', 'who', 'the', 'a', 'an', 'weak', 'to', 
+                  'strong', 'against', 'compare', 'and', 'evolution', 'evolve', 'type', 'stats']
+    
+    for word in words:
+        if len(word) > 2 and word not in skip_words:
+            # Test if it's a valid Pokemon via API
+            pokemon = get_pokemon_from_api(word)
+            if pokemon:
+                return word
+    
+    return None
 
 @app.route('/')
 def home():
@@ -39,7 +129,7 @@ def static_files(filename):
 
 @app.route('/ask', methods=['POST'])
 def ask():
-    """Handle question requests from the frontend"""
+    """Handle question requests"""
     try:
         data = request.get_json()
         question = data.get('question', '')
@@ -47,73 +137,41 @@ def ask():
         if not question:
             return jsonify({'error': 'No question provided'}), 400
         
-        bot = get_chatbot()
-        response = bot.answer_question(question)
+        # Extract Pokemon name
+        pokemon_name = extract_pokemon_name(question)
         
-        # Try to extract Pokemon name and get context
-        image_url = None
-        pokemon_name = bot._extract_pokemon_name(question.lower())
-        pokemon_context = None
-        lore_info = None
+        # Use context if no Pokemon found
+        if not pokemon_name and context.get('last_pokemon'):
+            pokemon_name = context['last_pokemon']
         
-        # Story keywords for lore search
-        story_keywords = ['story', 'lore', 'backstory', 'origin', 'history', 'found', 'created', 'discovered', 'legend']
-        is_story_query = any(kw in question.lower() for kw in story_keywords)
+        # Get Pokemon data from API
+        pokemon = get_pokemon_from_api(pokemon_name) if pokemon_name else None
         
-        # If no Pokemon name found, try context
-        if not pokemon_name:
-            pokemon_name = bot.conversation_context.get('last_pokemon')
+        # Update context
+        if pokemon:
+            context['last_pokemon'] = pokemon['name'].lower()
         
-        if pokemon_name:
-            image_url = bot._get_sprite_url(pokemon_name)
-            bot.conversation_context['last_pokemon'] = pokemon_name
-            
-            # Get rich context from CSV
-            matched = bot._fuzzy_find_pokemon(pokemon_name)
-            if matched:
-                try:
-                    poke = bot.df[bot.df['Name'] == matched].iloc[0]
-                    pokemon_context = {
-                        'name': matched,
-                        'type1': poke['Type1'],
-                        'type2': poke['Type2'] if poke['Type2'] else None,
-                        'hp': int(poke['HP']),
-                        'attack': int(poke['Attack']),
-                        'defense': int(poke['Defense']),
-                        'speed': int(poke['Speed']),
-                        'generation': int(poke['Generation']),
-                        'legendary': bool(poke['Legendary'])
-                    }
-                    if poke['Type1'] in bot.TYPE_CHART:
-                        pokemon_context['weak_to'] = bot.TYPE_CHART[poke['Type1']]['weak']
-                        pokemon_context['strong_against'] = bot.TYPE_CHART[poke['Type1']]['strong']
-                    
-                    # Web search for lore queries
-                    if is_story_query:
-                        try:
-                            from duckduckgo_search import DDGS
-                            with DDGS() as ddgs:
-                                results = list(ddgs.text(f"{matched} Pokemon lore origin backstory", max_results=3))
-                            if results:
-                                lore_info = [{'title': r.get('title', ''), 'body': r.get('body', '')} for r in results]
-                        except Exception as e:
-                            print(f"Web search error: {e}")
-                except:
-                    pass
-        
-        # Get evolution chain if available
-        evolution_chain = bot.conversation_context.get('evolution_chain')
-        if evolution_chain:
-            bot.conversation_context['evolution_chain'] = None
+        # Generate response
+        response = generate_response(pokemon, question)
         
         return jsonify({
             'success': True,
             'response': response,
-            'image_url': image_url,
-            'pokemon_name': pokemon_name,
-            'pokemon_context': pokemon_context,
-            'lore_info': lore_info,
-            'evolution_chain': evolution_chain
+            'image_url': pokemon['sprite'] if pokemon else None,
+            'pokemon_name': pokemon['name'] if pokemon else None,
+            'pokemon_context': {
+                'name': pokemon['name'],
+                'type1': pokemon['types'][0].title() if pokemon else None,
+                'type2': pokemon['types'][1].title() if pokemon and len(pokemon['types']) > 1 else None,
+                'hp': pokemon['hp'] if pokemon else 0,
+                'attack': pokemon['attack'] if pokemon else 0,
+                'defense': pokemon['defense'] if pokemon else 0,
+                'speed': pokemon['speed'] if pokemon else 0,
+                'weak_to': [w.title() for w in pokemon['weak_to']] if pokemon else [],
+                'strong_against': [s.title() for s in pokemon['strong_against']] if pokemon else []
+            } if pokemon else None,
+            'lore_info': None,
+            'evolution_chain': None
         })
     
     except Exception as e:
@@ -122,10 +180,9 @@ def ask():
             'error': str(e)
         }), 500
 
-# Vercel requires this handler
+# Vercel handler
 def handler(environ, start_response):
     return app(environ, start_response)
 
-# For local testing
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
