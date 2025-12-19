@@ -7,9 +7,7 @@ import requests
 import os
 import json
 
-app = Flask(__name__, 
-            static_folder='../frontend/static',
-            template_folder='../frontend/templates')
+app = Flask(__name__)
 
 # Pokemon type chart for weaknesses/strengths
 TYPE_CHART = {
