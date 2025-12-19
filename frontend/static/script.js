@@ -141,7 +141,7 @@ function loadProfile() {
 }
 
 function initAvatarGrid() {
-    const grid = document.getElementById('avatar-grid');
+    const grid = document.getElementById('settings-avatar-grid');
     grid.innerHTML = '';
 
     TRAINERS.forEach(trainer => {
@@ -154,32 +154,34 @@ function initAvatarGrid() {
     });
 }
 
-function openProfileModal() {
-    const modal = document.getElementById('profile-modal');
+function openSettings() {
+    const modal = document.getElementById('settings-modal');
     modal.classList.add('active');
 
     // Set current values
-    document.getElementById('username-input').value = currentUser.name;
-    document.getElementById('preview-avatar').src = currentUser.avatar || 'https://ui-avatars.com/api/?name=T&background=random';
+    document.getElementById('settings-username').value = currentUser.name;
+    const currentAvatar = currentUser.avatar || 'https://ui-avatars.com/api/?name=T&background=random';
+    document.getElementById('settings-current-avatar').src = currentAvatar;
 
     // Highlight selected if in grid
     document.querySelectorAll('.avatar-option').forEach(opt => {
         opt.classList.remove('selected');
+        // Simple check if src matches
         if (opt.querySelector('img').src === currentUser.avatar) {
             opt.classList.add('selected');
         }
     });
 }
 
-function closeProfileModal() {
-    document.getElementById('profile-modal').classList.remove('active');
+function closeSettings() {
+    document.getElementById('settings-modal').classList.remove('active');
 }
 
 let tempSelectedAvatar = '';
 
 function selectAvatar(url, element) {
     tempSelectedAvatar = url;
-    document.getElementById('preview-avatar').src = url;
+    document.getElementById('settings-current-avatar').src = url;
 
     // Update selection UI
     document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
@@ -191,7 +193,7 @@ function handleFileUpload(input) {
         const reader = new FileReader();
         reader.onload = function (e) {
             tempSelectedAvatar = e.target.result; // Base64 string
-            document.getElementById('preview-avatar').src = tempSelectedAvatar;
+            document.getElementById('settings-current-avatar').src = tempSelectedAvatar;
             // Clear grid selection
             document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
         };
@@ -199,16 +201,17 @@ function handleFileUpload(input) {
     }
 }
 
-function saveProfile() {
-    const name = document.getElementById('username-input').value.trim() || 'Trainer';
+function saveSettings() {
+    const name = document.getElementById('settings-username').value.trim() || 'Trainer';
     // Use new selection, or keep old if not changed
     const avatar = tempSelectedAvatar || currentUser.avatar;
 
     currentUser = { name, avatar };
     localStorage.setItem('omnidex_profile', JSON.stringify(currentUser));
 
-    closeProfileModal();
-    // Maybe show a toast notification?
+    closeSettings();
+    // Refresh messages to show new avatar? 
+    // Ideally we re-render, but for now new messages will use it.
 }
 
 // Add message to chat (updated for avatar)
