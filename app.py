@@ -9,8 +9,8 @@ from pokemon_chatbot import PokemonChatbot
 
 # Configure Flask with new folder structure
 app = Flask(__name__, 
-            template_folder='frontend/templates',
-            static_folder='frontend/static')
+            template_folder='.',
+            static_folder='static')
 
 # Initialize the chatbot with new data path
 chatbot = PokemonChatbot('data/pokemon_data.csv')
