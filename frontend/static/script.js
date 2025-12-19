@@ -87,7 +87,11 @@ function addMessage(text, sender, imageUrl = null) {
 
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar';
-    avatar.textContent = sender === 'user' ? 'U' : 'O';
+    if (sender === 'user') {
+        avatar.textContent = 'U';
+    } else {
+        avatar.innerHTML = '<img src="https://p7.hiclipart.com/preview/173/464/909/5bbeb7201905f.jpg" alt="Pokeball">';
+    }
 
     const content = document.createElement('div');
     content.className = 'message-content';
@@ -123,7 +127,7 @@ function showTyping() {
     typing.id = 'typing';
     typing.className = 'message message-bot';
     typing.innerHTML = `
-        <div class="message-avatar">O</div>
+        <div class="message-avatar"><img src="https://p7.hiclipart.com/preview/173/464/909/5bbeb7201905f.jpg" alt="Pokeball"></div>
         <div class="message-content">
             <div class="typing-indicator">
                 <span></span><span></span><span></span>
@@ -162,7 +166,7 @@ function clearChat() {
     const area = document.getElementById('messages-area');
     area.innerHTML = `
         <div class="welcome-message" id="welcome">
-            <div class="welcome-icon">O</div>
+            <div class="welcome-icon"><img src="https://p7.hiclipart.com/preview/173/464/909/5bbeb7201905f.jpg" alt="Pokeball"></div>
             <h1>Omnidex</h1>
             <p>Your Pokemon AI Assistant</p>
             <div class="suggestions">

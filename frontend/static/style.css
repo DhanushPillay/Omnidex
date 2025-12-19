@@ -52,13 +52,17 @@ body {
 .logo-icon {
     width: 36px;
     height: 36px;
-    background: linear-gradient(135deg, var(--accent), #ec4899);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 600;
-    font-size: 1.2rem;
+    overflow: hidden;
+}
+
+.logo-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .logo-text {
@@ -100,16 +104,20 @@ body {
 }
 
 .welcome-icon {
-    width: 64px;
-    height: 64px;
-    background: linear-gradient(135deg, var(--accent), #ec4899);
+    width: 80px;
+    height: 80px;
     border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2rem;
-    font-weight: 600;
     margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.welcome-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .welcome-message h1 {
@@ -168,8 +176,8 @@ body {
 }
 
 .message-avatar {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -177,6 +185,13 @@ body {
     font-weight: 600;
     font-size: 0.875rem;
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.message-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .message-user .message-avatar {
@@ -184,7 +199,7 @@ body {
 }
 
 .message-bot .message-avatar {
-    background: linear-gradient(135deg, var(--accent), #ec4899);
+    background: transparent;
 }
 
 .message-content {
