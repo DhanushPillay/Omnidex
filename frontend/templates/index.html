@@ -4,73 +4,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Omnidex - Pokemon AI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Omnidex</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Puter.js for FREE Grok AI -->
     <script src="https://js.puter.com/v2/"></script>
 </head>
 
 <body>
-    <div class="app-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">🔮</div>
+    <div class="chat-container">
+        <!-- Header -->
+        <header class="chat-header">
+            <div class="logo">
+                <span class="logo-icon">O</span>
+                <span class="logo-text">Omnidex</span>
+            </div>
+            <button class="new-chat-btn" onclick="clearChat()">New Chat</button>
+        </header>
+
+        <!-- Messages Area -->
+        <main class="messages-area" id="messages-area">
+            <div class="welcome-message" id="welcome">
+                <div class="welcome-icon">O</div>
                 <h1>Omnidex</h1>
-            </div>
-
-            <div class="stats-container">
-                <h3>Database Stats</h3>
-                <div class="stat-card">
-                    <span class="stat-value" id="total-pokemon">-</span>
-                    <span class="stat-label">Pokémon</span>
-                </div>
-                <div class="stat-grid">
-                    <div class="stat-mini">
-                        <span class="stat-mini-val" id="legendary-count">-</span>
-                        <span class="stat-mini-lbl">Legendary</span>
-                    </div>
-                    <div class="stat-mini">
-                        <span class="stat-mini-val" id="generations">-</span>
-                        <span class="stat-mini-lbl">Gens</span>
-                    </div>
-                    <div class="stat-mini">
-                        <span class="stat-mini-val" id="unique-types">-</span>
-                        <span class="stat-mini-lbl">Types</span>
-                    </div>
-                </div>
-            </div>
-
-
-            <div class="sidebar-footer">
-                <button class="clear-btn" onclick="clearChat()">
-                    🗑️ Clear Chat
-                </button>
-            </div>
-        </aside>
-
-        <!-- Main Chat Area -->
-        <main class="chat-interface">
-            <div class="chat-messages" id="chat-messages">
-                <div class="welcome-screen">
-                    <div class="welcome-icon">🔮</div>
-                    <h2>Welcome to Omnidex 👋</h2>
-                    <p>Your all-knowing Pokémon AI. Ask me anything in your own words!</p>
-                </div>
-            </div>
-
-            <div class="input-area">
-                <div class="input-wrapper">
-                    <input type="text" id="question-input" placeholder="Ask anything about Pokémon..."
-                        onkeypress="handleKeyPress(event)" autocomplete="off">
-                    <button id="send-btn" onclick="sendQuestion()">
-                        <span id="send-text">Send</span>
-                        <span id="loading-spinner" class="spinner" style="display: none;">Wait</span>
-                    </button>
+                <p>Your Pokemon AI Assistant</p>
+                <div class="suggestions">
+                    <button class="suggestion" onclick="askSuggestion('Tell me about Pikachu')">Tell me about
+                        Pikachu</button>
+                    <button class="suggestion" onclick="askSuggestion('What is Charizard weak to?')">What is Charizard
+                        weak to?</button>
+                    <button class="suggestion" onclick="askSuggestion('Compare Mewtwo and Mew')">Compare Mewtwo and
+                        Mew</button>
+                    <button class="suggestion" onclick="askSuggestion('Pokemon similar to Gengar')">Pokemon similar to
+                        Gengar</button>
                 </div>
             </div>
         </main>
+
+        <!-- Input Area -->
+        <footer class="input-area">
+            <div class="input-container">
+                <input type="text" id="user-input" placeholder="Ask anything about Pokemon..."
+                    onkeypress="handleKeyPress(event)" autocomplete="off">
+                <button id="send-btn" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                    </svg>
+                </button>
+            </div>
+            <p class="disclaimer">Omnidex uses AI. Responses may not always be accurate.</p>
+        </footer>
     </div>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>

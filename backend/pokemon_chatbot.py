@@ -312,6 +312,23 @@ class PokemonChatbot:
             ("how does it evolve", "context_evolution"),
             ("show me similar ones", "context_recommend"),
             ("any pokemon like it", "context_recommend"),
+            # Story/lore follow-ups
+            ("tell me its story", "context_story"),
+            ("what is its lore", "context_story"),
+            ("tell me more about it", "context_story"),
+            ("its backstory", "context_story"),
+            ("what is the story behind it", "context_story"),
+            ("give me its history", "context_story"),
+            ("how was it found", "context_story"),
+            ("how did they find it", "context_story"),
+            ("where does it come from", "context_story"),
+            ("what is its origin", "context_story"),
+            ("origin story", "context_story"),
+            ("how was it created", "context_story"),
+            ("who created it", "context_story"),
+            ("how was it discovered", "context_story"),
+            ("where did it come from", "context_story"),
+            ("its origin", "context_story"),
         ]
         
         self.intent_texts = [ex[0] for ex in self.intent_examples]
@@ -585,6 +602,9 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             pokemon_names = self._extract_multiple_pokemon_names(question_lower)
             if len(pokemon_names) >= 2:
                 data = self._compare_pokemon(pokemon_names[0], pokemon_names[1])
+                # Set context to the first Pokemon for follow-up questions
+                self.conversation_context['last_pokemon'] = pokemon_names[0]
+                self.conversation_context['compared_pokemon'] = pokemon_names  # Store both
                 return self._make_conversational(data, original_question)
         
         elif intent == "dual_type":
@@ -682,6 +702,9 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                         for s in similar:
                             data += f"• {s['name']} ({s['type']}) - {s['similarity']}% similar\n"
                         return self._make_conversational(data, original_question)
+                elif intent == "context_story":
+                    # Search for the last Pokemon's story/lore
+                    return self._search_web(f"{last_pokemon} Pokemon lore backstory origin")
             else:
                 return "I'm not sure which Pokemon you're referring to. Could you tell me the Pokemon's name?"
         

@@ -33,19 +33,60 @@ def ask():
         # Get response from chatbot
         response = chatbot.answer_question(question)
         
-        # Try to extract Pokemon name and get sprite URL
+        # Try to extract Pokemon name and get rich context
         image_url = None
         pokemon_name = chatbot._extract_pokemon_name(question.lower())
+        pokemon_context = None
+        lore_info = None
+        
+        # Detect if this is a story/lore query
+        story_keywords = ['story', 'lore', 'backstory', 'origin', 'history', 'found', 'created', 'discovered', 'legend']
+        is_story_query = any(kw in question.lower() for kw in story_keywords)
+        
         if pokemon_name:
             image_url = chatbot._get_sprite_url(pokemon_name)
-            # Update conversation context
             chatbot.conversation_context['last_pokemon'] = pokemon_name
+            
+            # Get rich context from CSV for Grok
+            matched = chatbot._fuzzy_find_pokemon(pokemon_name)
+            if matched:
+                try:
+                    poke = chatbot.df[chatbot.df['Name'] == matched].iloc[0]
+                    pokemon_context = {
+                        'name': matched,
+                        'type1': poke['Type1'],
+                        'type2': poke['Type2'] if poke['Type2'] else None,
+                        'hp': int(poke['HP']),
+                        'attack': int(poke['Attack']),
+                        'defense': int(poke['Defense']),
+                        'speed': int(poke['Speed']),
+                        'generation': int(poke['Generation']),
+                        'legendary': bool(poke['Legendary'])
+                    }
+                    if poke['Type1'] in chatbot.TYPE_CHART:
+                        pokemon_context['weak_to'] = chatbot.TYPE_CHART[poke['Type1']]['weak']
+                        pokemon_context['strong_against'] = chatbot.TYPE_CHART[poke['Type1']]['strong']
+                    
+                    # If story query, search for lore
+                    if is_story_query:
+                        try:
+                            from duckduckgo_search import DDGS
+                            with DDGS() as ddgs:
+                                results = list(ddgs.text(f"{matched} Pokemon lore origin backstory", max_results=3))
+                            if results:
+                                lore_info = [{'title': r.get('title', ''), 'body': r.get('body', '')} for r in results]
+                        except Exception as e:
+                            print(f"Web search error: {e}")
+                except:
+                    pass
         
         return jsonify({
             'success': True,
             'response': response,
             'image_url': image_url,
-            'pokemon_name': pokemon_name
+            'pokemon_name': pokemon_name,
+            'pokemon_context': pokemon_context,
+            'lore_info': lore_info  # Web search results for stories
         })
     
     except Exception as e:

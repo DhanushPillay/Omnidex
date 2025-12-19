@@ -1,178 +1,176 @@
-// Load stats on page load
-window.addEventListener('DOMContentLoaded', () => {
-    loadStats();
-});
-
-// Load Pokemon statistics
-async function loadStats() {
-    try {
-        const response = await fetch('/stats');
-        const data = await response.json();
-
-        document.getElementById('total-pokemon').textContent = data.total_pokemon;
-        document.getElementById('legendary-count').textContent = data.legendary_count;
-        document.getElementById('generations').textContent = data.generations;
-        document.getElementById('unique-types').textContent = data.unique_types;
-    } catch (error) {
-        console.error('Error loading stats:', error);
-    }
-}
-
-// Send question to the chatbot
-async function sendQuestion() {
-    const input = document.getElementById('question-input');
+// Send message on button click
+async function sendMessage() {
+    const input = document.getElementById('user-input');
     const question = input.value.trim();
 
-    if (!question) {
-        return;
-    }
+    if (!question) return;
 
-    // Clear input
     input.value = '';
-
-    // Display user message
+    hideWelcome();
     addMessage(question, 'user');
-
-    // Show loading state
-    setLoading(true);
+    showTyping();
 
     try {
-        // First get data from our Python backend
         const response = await fetch('/ask', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ question: question })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question })
         });
 
         const data = await response.json();
+        hideTyping();
 
         if (data.success) {
-            // Try to enhance response with Grok AI via Puter.js
             let finalResponse = data.response;
 
+            // Enhance with Grok AI using rich context from CSV + web search
             try {
                 if (typeof puter !== 'undefined' && puter.ai) {
+                    // Build rich context string if we have Pokemon data
+                    let contextStr = data.response;
+                    if (data.pokemon_context) {
+                        const ctx = data.pokemon_context;
+                        contextStr = `
+Pokemon: ${ctx.name}
+Type: ${ctx.type1}${ctx.type2 ? '/' + ctx.type2 : ''}
+Stats: HP ${ctx.hp}, Attack ${ctx.attack}, Defense ${ctx.defense}, Speed ${ctx.speed}
+Generation: ${ctx.generation}
+Legendary: ${ctx.legendary ? 'Yes' : 'No'}
+${ctx.weak_to ? 'Weak to: ' + ctx.weak_to.join(', ') : ''}
+${ctx.strong_against ? 'Strong against: ' + ctx.strong_against.join(', ') : ''}`;
+                    }
+
+                    // Add lore/story info from web search
+                    let loreStr = '';
+                    if (data.lore_info && data.lore_info.length > 0) {
+                        loreStr = '\n\nLore from Internet:\n' + data.lore_info.map(l =>
+                            `- ${l.title}: ${l.body}`
+                        ).join('\n');
+                    }
+
                     const grokResponse = await puter.ai.chat(
-                        `You are Omnidex, an all-knowing Pokemon AI expert. Make this response conversational and engaging (2-3 sentences, use 1-2 emoji):
+                        `You are Omnidex, the all-knowing Pokemon AI assistant. Using the data below, give a natural response (2-4 sentences, 1-2 emoji).
 
 User asked: "${question}"
-Data: ${data.response}
 
-Give a natural, friendly response based on this data.`,
-                        { model: 'x-ai/grok-4.1-fast', max_tokens: 150 }
+Pokemon Database:
+${contextStr}
+${loreStr}
+
+If user asked about story/lore/origin, use the "Lore from Internet" section. Otherwise use stats. Be engaging!`,
+                        { model: 'x-ai/grok-4.1-fast', max_tokens: 250 }
                     );
-                    if (grokResponse && grokResponse.message && grokResponse.message.content) {
+                    if (grokResponse?.message?.content) {
                         finalResponse = grokResponse.message.content;
                     }
                 }
-            } catch (grokError) {
-                console.log('Grok enhancement skipped:', grokError.message);
-                // Use original response if Grok fails
+            } catch (e) {
+                console.log('Grok skipped:', e.message);
             }
 
             addMessage(finalResponse, 'bot', data.image_url);
         } else {
-            addMessage('Error: ' + (data.error || 'Unknown error'), 'bot');
+            addMessage('Something went wrong. Please try again.', 'bot');
         }
     } catch (error) {
-        addMessage('Error: Failed to connect to the server', 'bot');
-        console.error('Error:', error);
-    } finally {
-        setLoading(false);
+        hideTyping();
+        addMessage('Connection error. Please check if the server is running.', 'bot');
     }
 }
 
-// Add message to chat (with optional image)
+// Add message to chat
 function addMessage(text, sender, imageUrl = null) {
-    const chatMessages = document.getElementById('chat-messages');
+    const area = document.getElementById('messages-area');
 
-    // Remove welcome message if it exists
-    const welcomeScreen = chatMessages.querySelector('.welcome-screen');
-    if (welcomeScreen) {
-        welcomeScreen.remove();
-    }
+    const msg = document.createElement('div');
+    msg.className = `message message-${sender}`;
 
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message message-${sender}`;
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    avatar.textContent = sender === 'user' ? 'U' : 'O';
 
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
+    const content = document.createElement('div');
+    content.className = 'message-content';
 
-    const label = document.createElement('div');
-    label.className = 'message-label';
-    label.textContent = sender === 'user' ? 'You' : 'Omnidex';
-
-    // Add Pokemon image if available (for bot messages)
+    // Add image if available
     if (sender === 'bot' && imageUrl) {
-        const imageContainer = document.createElement('div');
-        imageContainer.className = 'pokemon-image-container';
-
+        const imgContainer = document.createElement('div');
+        imgContainer.className = 'pokemon-image';
         const img = document.createElement('img');
         img.src = imageUrl;
         img.alt = 'Pokemon';
-        img.className = 'pokemon-sprite';
-        img.onerror = () => { imageContainer.style.display = 'none'; };
-
-        imageContainer.appendChild(img);
-        contentDiv.appendChild(imageContainer);
+        img.onerror = () => imgContainer.remove();
+        imgContainer.appendChild(img);
+        content.appendChild(imgContainer);
     }
 
-    const messageText = document.createElement('div');
-    messageText.className = 'message-text';
-    // Handle newlines if needed, or stick to textContent for safety
-    messageText.textContent = text;
+    const textDiv = document.createElement('div');
+    textDiv.className = 'message-text';
+    textDiv.textContent = text;
+    content.appendChild(textDiv);
 
-    contentDiv.appendChild(label);
-    contentDiv.appendChild(messageText);
-    messageDiv.appendChild(contentDiv);
+    msg.appendChild(avatar);
+    msg.appendChild(content);
+    area.appendChild(msg);
 
-    chatMessages.appendChild(messageDiv);
-
-    // Scroll to bottom
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    area.scrollTop = area.scrollHeight;
 }
 
-// Handle Enter key press
+// Show typing indicator
+function showTyping() {
+    const area = document.getElementById('messages-area');
+    const typing = document.createElement('div');
+    typing.id = 'typing';
+    typing.className = 'message message-bot';
+    typing.innerHTML = `
+        <div class="message-avatar">O</div>
+        <div class="message-content">
+            <div class="typing-indicator">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    `;
+    area.appendChild(typing);
+    area.scrollTop = area.scrollHeight;
+}
+
+// Hide typing indicator
+function hideTyping() {
+    document.getElementById('typing')?.remove();
+}
+
+// Hide welcome message
+function hideWelcome() {
+    document.getElementById('welcome')?.remove();
+}
+
+// Handle suggestion click
+function askSuggestion(text) {
+    document.getElementById('user-input').value = text;
+    sendMessage();
+}
+
+// Handle Enter key
 function handleKeyPress(event) {
     if (event.key === 'Enter') {
-        sendQuestion();
+        sendMessage();
     }
-}
-
-// Quick question buttons
-function askQuestion(question) {
-    const input = document.getElementById('question-input');
-    input.value = question;
-    sendQuestion();
 }
 
 // Clear chat
 function clearChat() {
-    const chatMessages = document.getElementById('chat-messages');
-    chatMessages.innerHTML = `
-        <div class="welcome-screen">
-            <div class="welcome-icon">🎮</div>
-            <h2>Welcome to PokéBot</h2>
-            <p>I'm your advanced AI assistant for all things Pokémon. Ask me about stats, matchups, or lore!</p>
+    const area = document.getElementById('messages-area');
+    area.innerHTML = `
+        <div class="welcome-message" id="welcome">
+            <div class="welcome-icon">O</div>
+            <h1>Omnidex</h1>
+            <p>Your Pokemon AI Assistant</p>
+            <div class="suggestions">
+                <button class="suggestion" onclick="askSuggestion('Tell me about Pikachu')">Tell me about Pikachu</button>
+                <button class="suggestion" onclick="askSuggestion('What is Charizard weak to?')">What is Charizard weak to?</button>
+                <button class="suggestion" onclick="askSuggestion('Compare Mewtwo and Mew')">Compare Mewtwo and Mew</button>
+                <button class="suggestion" onclick="askSuggestion('Pokemon similar to Gengar')">Pokemon similar to Gengar</button>
+            </div>
         </div>
     `;
-}
-
-// Set loading state
-function setLoading(isLoading) {
-    const sendBtn = document.getElementById('send-btn');
-    const sendText = document.getElementById('send-text');
-    const spinner = document.getElementById('loading-spinner');
-
-    if (isLoading) {
-        sendBtn.disabled = true;
-        sendText.style.display = 'none';
-        spinner.style.display = 'inline-block';
-    } else {
-        sendBtn.disabled = false;
-        sendText.style.display = 'inline';
-        spinner.style.display = 'none';
-    }
 }
