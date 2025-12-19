@@ -636,22 +636,39 @@ class PokemonChatbot:
         if not self.gemini_model:
             return data  # Return raw data if no Gemini
         
+        # Get current topic from context
+        topic = self.conversation_context.get('current_topic', 'general')
+        
+        # Topic-specific instructions
+        topic_instruction = ""
+        if topic == 'battle':
+            topic_instruction = "- Focus on battle strategy, type matchups, and competitive viability. Sound like a Gym Leader!"
+        elif topic == 'lore':
+            topic_instruction = "- Speak like a storyteller sharing myths and legends. Be mysterious and intriguing."
+        elif topic == 'evolution':
+            topic_instruction = "- Express excitement about growth, metamorphosis, and potential. Sound like a Pokemon Professor!"
+        elif topic == 'stats':
+            topic_instruction = "- Be analytical but enthusiastic. Compare stats to average Pokemon."
+        else:
+            topic_instruction = "- Be friendly, helpful and enthusiastic!"
+
         try:
-            prompt = f"""You are PokéBot, a friendly and enthusiastic Pokemon expert chatbot.
-Transform this data into a natural, conversational response like ChatGPT or Gemini would give.
+            prompt = f"""You are Omnidex, an expert AI Pokemon Professor.
+Transform this raw data into a natural, conversational response.
 
 User asked: "{user_question}"
+Topic: {topic.upper()}
 
-Here's the data to transform:
+Data to transform:
 {data}
 
 Instructions:
-- Be friendly, helpful and show enthusiasm about Pokemon!
+{topic_instruction}
 - Keep it concise (2-4 sentences max)
 - Use 1-2 relevant emoji
-- Sound natural, not robotic
-- Include the key facts from the data
-- Don't list things line by line, weave them into sentences"""
+- Sound natural, exclude raw JSON formatting
+- If data is a list, weave it into a sentence naturally
+"""
 
             response = self.gemini_model.generate_content(prompt)
             return response.text
