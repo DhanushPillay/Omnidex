@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omnidex - Pokemon AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Puter.js for FREE Grok AI -->
+    <script src="https://js.puter.com/v2/"></script>
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">🔮</div>
+                <h1>Omnidex</h1>
+            </div>
+
+            <div class="stats-container">
+                <h3>Database Stats</h3>
+                <div class="stat-card">
+                    <span class="stat-value" id="total-pokemon">-</span>
+                    <span class="stat-label">Pokémon</span>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-mini">
+                        <span class="stat-mini-val" id="legendary-count">-</span>
+                        <span class="stat-mini-lbl">Legendary</span>
+                    </div>
+                    <div class="stat-mini">
+                        <span class="stat-mini-val" id="generations">-</span>
+                        <span class="stat-mini-lbl">Gens</span>
+                    </div>
+                    <div class="stat-mini">
+                        <span class="stat-mini-val" id="unique-types">-</span>
+                        <span class="stat-mini-lbl">Types</span>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="sidebar-footer">
+                <button class="clear-btn" onclick="clearChat()">
+                    🗑️ Clear Chat
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-interface">
+            <div class="chat-messages" id="chat-messages">
+                <div class="welcome-screen">
+                    <div class="welcome-icon">🔮</div>
+                    <h2>Welcome to Omnidex 👋</h2>
+                    <p>Your all-knowing Pokémon AI. Ask me anything in your own words!</p>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <input type="text" id="question-input" placeholder="Ask anything about Pokémon..."
+                        onkeypress="handleKeyPress(event)" autocomplete="off">
+                    <button id="send-btn" onclick="sendQuestion()">
+                        <span id="send-text">Send</span>
+                        <span id="loading-spinner" class="spinner" style="display: none;">Wait</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
