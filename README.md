@@ -1,165 +1,201 @@
-# PokéBot AI 🔥
+# � Omnidex - The All-Knowing Pokémon AI
 
-An intelligent, **self-learning** Pokemon chatbot powered by Machine Learning. Ask questions naturally and the bot learns from the internet to expand its knowledge!
+<div align="center">
 
-![Python](https://img.shields.io/badge/Python-3.8+-blue)
-![ML](https://img.shields.io/badge/ML-scikit--learn-orange)
-![Status](https://img.shields.io/badge/Status-Active-green)
+![Python](https://img.shields.io/badge/Python-3.8+-3776ab?style=for-the-badge&logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-2.0+-000000?style=for-the-badge&logo=flask&logoColor=white)
+![ML](https://img.shields.io/badge/ML-scikit--learn-f7931e?style=for-the-badge&logo=scikit-learn&logoColor=white)
+![AI](https://img.shields.io/badge/AI-Grok%20%2B%20Puter.js-8b5cf6?style=for-the-badge)
+
+**An intelligent, self-learning Pokémon chatbot powered by Machine Learning and Grok AI**
+
+[Features](#-features) • [Demo](#-demo) • [Installation](#-installation) • [Usage](#-usage) • [Tech Stack](#-tech-stack)
+
+</div>
+
+---
 
 ## ✨ Features
 
-### 🤖 Machine Learning
-- **TF-IDF Intent Classification** - Understands 165+ natural language patterns
-- **Fuzzy Name Matching** - Handles typos (e.g., "charazard" → "Charizard")
-- **K-Nearest Neighbors** - Recommends similar Pokemon based on stats
-- **Conversation Memory** - Remembers context for follow-up questions
+### � Advanced Machine Learning
+- **Semantic NLP (sentence-transformers)** - Uses `all-MiniLM-L6-v2` for deep language understanding
+- **TF-IDF Intent Classification** - 165+ training examples for accurate intent detection
+- **Fuzzy Name Matching** - Handles typos & misspellings (e.g., "charazard" → "Charizard")
+- **K-Nearest Neighbors (KNN)** - Recommends similar Pokémon based on stat vectors
 
-### 🧠 Self-Learning (NEW!)
-- **PokeAPI Integration** - Automatically fetches unknown Pokemon from the internet
-- **Auto-Database Updates** - Adds newly discovered Pokemon to CSV
-- **Answer Caching** - Stores lore/story answers for instant future responses
+### 🤖 Free AI-Powered Responses
+- **Grok AI via Puter.js** - FREE unlimited conversational AI (no API key needed!)
+- **Natural Conversations** - Responses feel like chatting with a real Pokémon expert
+- **Context-Aware** - Remembers the last Pokémon discussed for follow-up questions
 
-### 📊 Pokemon Knowledge
+### 📚 Self-Learning Capabilities
+- **PokeAPI Integration** - Automatically fetches unknown Pokémon from the internet
+- **Auto-Database Updates** - Newly discovered Pokémon are added to the CSV database
+- **Answer Caching** - Stores web search results for instant future responses
+
+### 🎮 Rich Pokémon Knowledge
+- **650+ Pokémon** - Complete stats, types, and generation data
 - **Type Effectiveness** - Weakness/strength calculations for all 18 types
-- **Evolution Chains** - Evolution info for 30+ popular Pokemon
-- **649+ Pokemon** - Full stats, types, and generation data
+- **Evolution Chains** - Evolution info for 30+ popular Pokémon
+- **Pokémon Images** - Official artwork sprites displayed in chat
 
-### 🌐 Web Interface
-- Modern, dark-themed chat UI
-- Responsive design (mobile-friendly)
-- Real-time stats dashboard
+---
 
-## 🚀 Quick Start
+## � Demo
 
-### 1. Install Dependencies
+### What You Can Ask:
+
+| Query Type | Example |
+|------------|---------|
+| **Basic Info** | "Tell me about Pikachu", "What's Charizard?" |
+| **Type Queries** | "Show me all fire types", "List water Pokémon" |
+| **Stats** | "Who has the highest attack?", "Fastest Pokémon?" |
+| **Comparisons** | "Compare Charizard and Blastoise" |
+| **Weaknesses** | "What is Pikachu weak to?", "Fire type weakness" |
+| **Evolution** | "How does Eevee evolve?", "Pikachu evolution" |
+| **Recommendations** | "Recommend Pokémon like Gengar" |
+| **Lore/Stories** | "Who is Ash Ketchum?", "Tell me about Misty" |
+| **Follow-ups** | "What about its defense?" (after asking about a Pokémon) |
+
+---
+
+## 🚀 Installation
+
+### Prerequisites
+- Python 3.8+
+- pip (Python package manager)
+
+### Step 1: Clone the Repository
+```bash
+git clone https://github.com/DhanushPillay/Omnidex.git
+cd Omnidex
+```
+
+### Step 2: Create Virtual Environment (Recommended)
+```bash
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+
+# macOS/Linux
+source .venv/bin/activate
+```
+
+### Step 3: Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. (Optional) Set Gemini API Key
-```bash
-# For AI-powered conversational responses
-set GEMINI_API_KEY=your_key_here
-```
-Get a free key at: https://makersuite.google.com/app/apikey
-
-### 3. Run the Web App
+### Step 4: Run the Application
 ```bash
 python app.py
 ```
-Then open: http://localhost:5000
 
-### 4. Or Run CLI Mode
+### Step 5: Open in Browser
+Navigate to: **http://localhost:5000**
+
+---
+
+## � Usage
+
+### Web Interface
+Simply open the web interface and type your questions naturally:
+- "I want to know about Mewtwo"
+- "What type beats Dragon?"
+- "Show me legendary Pokémon"
+
+### Command Line (Optional)
 ```bash
 python pokemon_chatbot.py
 ```
 
-## 💬 Example Queries
+---
 
-### Basic Info
-- "Tell me about Pikachu"
-- "I want to know about Charizard"
-- "What's Mewtwo?"
+## 🛠 Tech Stack
 
-### Type Queries
-- "Show me all fire type Pokemon"
-- "List water types"
-- "Electric Pokemon"
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Backend** | Python 3, Flask | Web server & API |
+| **ML - NLP** | sentence-transformers | Semantic understanding |
+| **ML - Classification** | scikit-learn (TF-IDF) | Intent classification |
+| **ML - Recommendations** | scikit-learn (KNN) | Similar Pokémon suggestions |
+| **AI** | Grok via Puter.js | Conversational responses |
+| **Data API** | PokeAPI | Self-learning new Pokémon |
+| **Web Search** | DuckDuckGo | Lore & story queries |
+| **Frontend** | HTML5, CSS3, JavaScript | Modern chat interface |
 
-### Stats & Comparisons
-- "Who has the highest attack?"
-- "Compare Charizard and Blastoise"
-- "Fastest Pokemon"
-
-### Type Effectiveness (NEW!)
-- "What is Charizard weak to?"
-- "Pikachu weakness"
-- "What type beats Dragon?"
-
-### Evolution (NEW!)
-- "How does Pikachu evolve?"
-- "Eevee evolutions"
-- "What level does Charmander evolve?"
-
-### Recommendations (ML-Powered)
-- "Recommend Pokemon similar to Pikachu"
-- "Who is similar to Gengar?"
-
-### Context-Aware Follow-ups (NEW!)
-- "Tell me about Pikachu"
-- "What about its defense?" ← Bot remembers Pikachu!
-- "Is it legendary?"
-
-### Self-Learning (NEW!)
-Ask about newer Pokemon not in the database:
-- "Tell me about Sprigatito" → Bot learns from PokeAPI and adds to database!
+---
 
 ## 📁 Project Structure
 
 ```
+Omnidex/
 ├── app.py                 # Flask web server
 ├── pokemon_chatbot.py     # Core ML chatbot logic
-├── pokemon_data.csv       # Pokemon database (auto-updates!)
+├── pokemon_data.csv       # Pokémon database (auto-updates!)
 ├── learned_cache.json     # Cached web search answers
 ├── requirements.txt       # Python dependencies
 ├── templates/
 │   └── index.html        # Chat interface
 └── static/
-    ├── style.css         # Styling
-    └── script.js         # Frontend logic
+    ├── style.css         # Dark theme styling
+    └── script.js         # Frontend logic + Grok integration
 ```
 
-## 🛠️ Technical Stack
+---
 
-| Component | Technology |
-|-----------|------------|
-| Backend | Python 3, Flask |
-| ML | scikit-learn (TF-IDF, KNN) |
-| NLP | Fuzzy matching, Intent classification |
-| AI | Google Gemini (optional) |
-| Web Search | DuckDuckGo Search |
-| API | PokeAPI (for self-learning) |
-| Frontend | HTML5, CSS3, JavaScript |
+## 🧠 How the ML Works
 
-## 📈 ML Features Explained
-
-### Intent Classification (TF-IDF)
-```python
-# Trained on 165+ example phrases per intent
-vectorizer = TfidfVectorizer(ngram_range=(1, 2))
-# Uses cosine similarity to match user queries
+### 1. Intent Classification
+```
+User: "What is Pikachu weak to?"
+      ↓
+Semantic Embedding (sentence-transformers)
+      ↓
+Cosine Similarity with 165+ training examples
+      ↓
+Intent: "weakness" (98.8% confidence)
 ```
 
-### Pokemon Recommendations (KNN)
-```python
-# Finds similar Pokemon based on stat vectors
-knn_model = NearestNeighbors(n_neighbors=5)
-# Normalized HP, Attack, Defense, Speed features
+### 2. Self-Learning Flow
 ```
-
-### Self-Learning Flow
-```
-User asks about unknown Pokemon
-        ↓
+User asks about unknown Pokémon
+      ↓
 Check local database (miss)
-        ↓
+      ↓
 Query PokeAPI
-        ↓
-Extract stats & types
-        ↓
+      ↓
+Extract stats, types, generation
+      ↓
 Add to pokemon_data.csv
-        ↓
-Retrain recommendation model
-        ↓
-Respond to user
+      ↓
+Retrain KNN model
+      ↓
+Respond with new data
 ```
+
+### 3. Response Enhancement
+```
+Backend returns raw data
+      ↓
+Puter.js sends to Grok AI
+      ↓
+Grok makes it conversational
+      ↓
+Natural response displayed
+```
+
+---
 
 ## 🔧 Configuration
 
-### Environment Variables
+### Environment Variables (Optional)
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `GEMINI_API_KEY` | Google Gemini API key for AI responses | Optional |
+| `GEMINI_API_KEY` | Google Gemini API (legacy fallback) | No |
+
+> **Note:** Grok AI via Puter.js requires NO API key! It's completely free.
 
 ### Files
 | File | Purpose |
@@ -167,12 +203,36 @@ Respond to user
 | `pokemon_data.csv` | Main database (auto-updated by self-learning) |
 | `learned_cache.json` | Cached answers from web searches |
 
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to:
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
+
+---
+
 ## 📜 License
 
-Free to use and modify!
+This project is free to use and modify.
+
+---
 
 ## 🙏 Credits
 
-- [PokeAPI](https://pokeapi.co/) - Pokemon data source for self-learning
-- [DuckDuckGo](https://duckduckgo.com/) - Web search for lore/stories
-- [Google Gemini](https://ai.google.dev/) - AI-powered responses
+- **[PokeAPI](https://pokeapi.co/)** - Pokémon data source for self-learning
+- **[Puter.js](https://puter.com)** - Free Grok AI access
+- **[DuckDuckGo](https://duckduckgo.com/)** - Web search for lore/stories
+- **[Hugging Face](https://huggingface.co/)** - sentence-transformers models
+
+---
+
+<div align="center">
+
+**Built with ❤️ by [DhanushPillay](https://github.com/DhanushPillay)**
+
+⭐ Star this repo if you found it helpful!
+
+</div>
