@@ -1,11 +1,19 @@
-from flask import Flask, render_template, request, jsonify
-from pokemon_chatbot import PokemonChatbot
+import sys
 import os
 
-app = Flask(__name__)
+# Add backend folder to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
 
-# Initialize the chatbot
-chatbot = PokemonChatbot('pokemon_data.csv')
+from flask import Flask, render_template, request, jsonify
+from pokemon_chatbot import PokemonChatbot
+
+# Configure Flask with new folder structure
+app = Flask(__name__, 
+            template_folder='frontend/templates',
+            static_folder='frontend/static')
+
+# Initialize the chatbot with new data path
+chatbot = PokemonChatbot('data/pokemon_data.csv')
 
 @app.route('/')
 def home():
@@ -67,10 +75,10 @@ def stats():
 
 if __name__ == '__main__':
     print("\n" + "="*60)
-    print("🔥 Pokemon Chatbot Web Server Starting...")
+    print("🔮 Omnidex - Pokemon AI Server Starting...")
     print("="*60)
     print(f"\nLoaded {len(chatbot.df)} Pokemon!")
-    print("\n Open your browser and go to: http://localhost:5000")
+    print("\n🌐 Open your browser and go to: http://localhost:5000")
     print("\nPress CTRL+C to stop the server\n")
     
     app.run(debug=True, host='0.0.0.0', port=5000)

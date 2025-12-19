@@ -131,17 +131,38 @@ python pokemon_chatbot.py
 
 ```
 Omnidex/
-├── app.py                 # Flask web server
-├── pokemon_chatbot.py     # Core ML chatbot logic
-├── pokemon_data.csv       # Pokémon database (auto-updates!)
-├── learned_cache.json     # Cached web search answers
-├── requirements.txt       # Python dependencies
-├── templates/
-│   └── index.html        # Chat interface
-└── static/
-    ├── style.css         # Dark theme styling
-    └── script.js         # Frontend logic + Grok integration
+│
+├── app.py                       # 🚀 Entry point - Flask web server
+├── requirements.txt             # 📦 Python dependencies
+├── README.md                    # 📝 Documentation
+│
+├── backend/                     # 🐍 Backend Logic
+│   ├── pokemon_chatbot.py       # Core ML chatbot (62KB)
+│   └── demo.py                  # Testing script
+│
+├── data/                        # 📊 Data Files
+│   ├── pokemon_data.csv         # Pokémon database (650+ entries)
+│   └── learned_cache.json       # Cached web search answers
+│
+└── frontend/                    # 🎨 Web Interface
+    ├── templates/
+    │   └── index.html           # Main chat interface
+    └── static/
+        ├── style.css            # Dark theme styling
+        └── script.js            # Grok AI integration
 ```
+
+### File Descriptions
+
+| File | Size | Description |
+|------|------|-------------|
+| `app.py` | 2.4KB | Flask server with `/ask` and `/stats` API endpoints |
+| `pokemon_chatbot.py` | 62KB | Core ML: TF-IDF, KNN, sentence-transformers, PokeAPI integration |
+| `pokemon_data.csv` | 26KB | 650+ Pokémon with stats, types, generations |
+| `learned_cache.json` | 2.5KB | Auto-saved web search results for faster responses |
+| `index.html` | 3KB | Responsive chat UI with Puter.js Grok integration |
+| `style.css` | 8KB | Dark theme with animations and mobile support |
+| `script.js` | 5.8KB | Frontend logic, Grok AI enhancement, image display |
 
 ---
 
