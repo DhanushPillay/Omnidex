@@ -19,8 +19,52 @@
                 <span class="logo-icon"><img src="/static/pokeball.png" alt="Pokeball"></span>
                 <span class="logo-text">Omnidex</span>
             </div>
-            <button class="new-chat-btn" onclick="clearChat()">New Chat</button>
+            <div class="header-controls">
+                <button class="icon-btn" onclick="openProfileModal()" title="Customize Profile">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </button>
+                <button class="new-chat-btn" onclick="clearChat()">New Chat</button>
+            </div>
         </header>
+
+        <!-- Profile Modal -->
+        <div id="profile-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Trainer Pass</h2>
+                    <span class="close-btn" onclick="closeProfileModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="current-avatar-preview">
+                        <img id="preview-avatar" src="" alt="Current Avatar">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Trainer Name</label>
+                        <input type="text" id="username-input" placeholder="Enter your name" maxlength="15">
+                    </div>
+
+                    <div class="avatar-section">
+                        <label>Choose Avatar</label>
+                        <div class="avatar-grid" id="avatar-grid">
+                            <!-- Helper to generate avatars -->
+                        </div>
+                    </div>
+
+                    <div class="upload-section">
+                        <label>Or Upload Your Own</label>
+                        <input type="file" id="custom-avatar-input" accept="image/*" onchange="handleFileUpload(this)">
+                        <small>Max size: 2MB</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="save-btn" onclick="saveProfile()">Save Profile</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Messages Area -->
         <main class="messages-area" id="messages-area">

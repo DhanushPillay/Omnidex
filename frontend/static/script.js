@@ -115,7 +115,103 @@ RESPONSE GUIDELINES:
     }
 }
 
-// Add message to chat
+// User Profile State
+let currentUser = {
+    name: 'Trainer',
+    avatar: '' // Empty means default or U
+};
+
+// Trainer Sprites (Pokemon Showdown)
+const TRAINERS = [
+    'red', 'blue', 'ethan', 'lyra', 'brendan',
+    'may', 'lucas', 'dawn', 'hilbert', 'hilda'
+];
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', () => {
+    loadProfile();
+    initAvatarGrid();
+});
+
+function loadProfile() {
+    const stored = localStorage.getItem('omnidex_profile');
+    if (stored) {
+        currentUser = JSON.parse(stored);
+    }
+}
+
+function initAvatarGrid() {
+    const grid = document.getElementById('avatar-grid');
+    grid.innerHTML = '';
+
+    TRAINERS.forEach(trainer => {
+        const url = `https://play.pokemonshowdown.com/sprites/trainers/${trainer}.png`;
+        const div = document.createElement('div');
+        div.className = 'avatar-option';
+        div.onclick = () => selectAvatar(url, div);
+        div.innerHTML = `<img src="${url}" alt="${trainer}">`;
+        grid.appendChild(div);
+    });
+}
+
+function openProfileModal() {
+    const modal = document.getElementById('profile-modal');
+    modal.classList.add('active');
+
+    // Set current values
+    document.getElementById('username-input').value = currentUser.name;
+    document.getElementById('preview-avatar').src = currentUser.avatar || 'https://ui-avatars.com/api/?name=T&background=random';
+
+    // Highlight selected if in grid
+    document.querySelectorAll('.avatar-option').forEach(opt => {
+        opt.classList.remove('selected');
+        if (opt.querySelector('img').src === currentUser.avatar) {
+            opt.classList.add('selected');
+        }
+    });
+}
+
+function closeProfileModal() {
+    document.getElementById('profile-modal').classList.remove('active');
+}
+
+let tempSelectedAvatar = '';
+
+function selectAvatar(url, element) {
+    tempSelectedAvatar = url;
+    document.getElementById('preview-avatar').src = url;
+
+    // Update selection UI
+    document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+    if (element) element.classList.add('selected');
+}
+
+function handleFileUpload(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            tempSelectedAvatar = e.target.result; // Base64 string
+            document.getElementById('preview-avatar').src = tempSelectedAvatar;
+            // Clear grid selection
+            document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function saveProfile() {
+    const name = document.getElementById('username-input').value.trim() || 'Trainer';
+    // Use new selection, or keep old if not changed
+    const avatar = tempSelectedAvatar || currentUser.avatar;
+
+    currentUser = { name, avatar };
+    localStorage.setItem('omnidex_profile', JSON.stringify(currentUser));
+
+    closeProfileModal();
+    // Maybe show a toast notification?
+}
+
+// Add message to chat (updated for avatar)
 function addMessage(text, sender, imageUrl = null, evolutionChain = null) {
     const area = document.getElementById('messages-area');
 
@@ -125,7 +221,12 @@ function addMessage(text, sender, imageUrl = null, evolutionChain = null) {
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar';
     if (sender === 'user') {
-        avatar.textContent = 'U';
+        if (currentUser.avatar) {
+            avatar.innerHTML = `<img src="${currentUser.avatar}" alt="${currentUser.name}">`;
+        } else {
+            avatar.textContent = currentUser.name.charAt(0).toUpperCase();
+            avatar.style.background = 'var(--accent)';
+        }
     } else {
         avatar.innerHTML = '<img src="/static/pokeball.png" alt="Pokeball">';
     }
