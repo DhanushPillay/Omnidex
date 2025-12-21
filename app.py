@@ -123,9 +123,14 @@ def ask():
         
         # Get evolution chain if available
         evolution_chain = context.get('evolution_chain')
-        # Clear it after reading so it doesn't persist to next query
+        # Clear it after reading
         if evolution_chain:
             context['evolution_chain'] = None
+            
+        # Get card data if available
+        card_data = context.get('card_data')
+        if card_data:
+            context['card_data'] = None
         
         # Save context back to session
         session['context'] = context
@@ -139,7 +144,8 @@ def ask():
             'pokemon_name': pokemon_name,
             'pokemon_context': pokemon_context,
             'lore_info': lore_info,
-            'evolution_chain': evolution_chain  # Evolution sprites
+            'evolution_chain': evolution_chain,
+            'card_data': card_data  # New field for holographic card
         })
     
     except Exception as e:

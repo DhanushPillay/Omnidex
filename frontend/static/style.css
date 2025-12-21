@@ -722,3 +722,166 @@ body {
     font-style: italic;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
+
+/* 3D Holographic Card Styles */
+:root {
+    --type-fire: #ff9966;
+    --type-fire-2: #ff5e62;
+    --type-water: #2193b0;
+    --type-water-2: #6dd5ed;
+    --type-grass: #11998e;
+    --type-grass-2: #38ef7d;
+    --type-electric: #f7971e;
+    --type-electric-2: #ffd200;
+    --type-psychic: #8e2de2;
+    --type-psychic-2: #4a00e0;
+    --type-ice: #2980b9;
+    --type-ice-2: #6dd5fa;
+    --type-dragon: #8e44ad;
+    --type-dragon-2: #c0392b;
+    --type-dark: #000000;
+    --type-dark-2: #434343;
+    --type-fairy: #ec008c;
+    --type-fairy-2: #fc6767;
+    --type-normal: #bdc3c7;
+    --type-normal-2: #2c3e50;
+    --type-default: #141e30;
+    --type-default-2: #243b55;
+}
+
+.holo-card-container {
+    perspective: 1000px;
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+}
+
+.holo-card {
+    width: 250px;
+    height: 350px;
+    position: relative;
+    border-radius: 15px;
+    background: #040712;
+    box-shadow:
+        0 15px 35px rgba(0, 0, 0, 0.5),
+        0 5px 15px rgba(0, 0, 0, 0.3);
+    transition: transform 0.1s;
+    transform-style: preserve-3d;
+    cursor: pointer;
+}
+
+.holo-card-content {
+    position: absolute;
+    inset: 4px;
+    background: #000;
+    border-radius: 12px;
+    /* Type-based gradient dynamic via JS */
+    background: linear-gradient(135deg, var(--c1, #333), var(--c2, #111));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Holographic Overlays */
+.holo-card::before,
+.holo-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 15px;
+    mix-blend-mode: color-dodge;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.5s;
+}
+
+/* Gradient Sheen */
+.holo-card::before {
+    background: linear-gradient(115deg,
+            transparent 0%,
+            var(--c1, #00d2ff) 30%,
+            transparent 47%,
+            transparent 53%,
+            var(--c2, #3a7bd5) 75%,
+            transparent 100%);
+    background-size: 250% 250%;
+    background-position: 50% 50%;
+}
+
+/* Sparkles & Holo Pattern */
+.holo-card::after {
+    background-image:
+        linear-gradient(125deg, #ff008450 15%, #fca40040 30%, #ffff0030 40%, #00ff8a20 60%, #00cfff40 70%, #cc4cfa50 85%);
+    background-size: 160% 160%;
+    background-blend-mode: overlay;
+    filter: brightness(1.2) contrast(1.1);
+}
+
+/* Hover State */
+.holo-card:hover::before,
+.holo-card:hover::after {
+    opacity: 0.8;
+    /* Make holo effect visible on hover */
+}
+
+/* Card Elements */
+.card-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    z-index: 2;
+}
+
+.card-hp {
+    font-size: 0.9em;
+    color: #ff5252;
+}
+
+.card-image {
+    width: 100%;
+    height: 160px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+    position: relative;
+    z-index: 2;
+    overflow: hidden;
+}
+
+.card-image img {
+    width: 90%;
+    height: 90%;
+    object-fit: contain;
+    filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.6));
+}
+
+.card-stats {
+    width: 100%;
+    color: white;
+    font-size: 0.8em;
+    z-index: 2;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 2px;
+}

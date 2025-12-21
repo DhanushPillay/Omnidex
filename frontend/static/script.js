@@ -26,7 +26,7 @@ async function sendMessage() {
         if (data.success) {
             // Backend now handles all personality/formatting
             // Only need to display the response
-            addMessage(data.response, 'bot', data.image_url, data.evolution_chain, data.comparison_images);
+            addMessage(data.response, 'bot', data.image_url, data.evolution_chain, data.comparison_images, data.card_data);
         } else {
             addMessage('Something went wrong. Please try again.', 'bot');
         }
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Add message to chat (updated for avatar)
-function addMessage(text, sender, imageUrl = null, evolutionChain = null, comparisonImages = null) {
+function addMessage(text, sender, imageUrl = null, evolutionChain = null, comparisonImages = null, cardData = null) {
     const area = document.getElementById('messages-area');
 
     const msg = document.createElement('div');
@@ -60,8 +60,78 @@ function addMessage(text, sender, imageUrl = null, evolutionChain = null, compar
     const content = document.createElement('div');
     content.className = 'message-content';
 
+    // ============ HOLOGRAPHIC CARD RENDERER ============
+    if (sender === 'bot' && cardData) {
+        const cardContainer = document.createElement('div');
+        cardContainer.className = 'holo-card-container';
+
+        // Determine type colors
+        const type = cardData.type || 'default';
+        const typeColor1 = `var(--type-${type})`;
+        const typeColor2 = `var(--type-${type}-2)`;
+
+        const card = document.createElement('div');
+        card.className = 'holo-card';
+        card.style.setProperty('--c1', typeColor1);
+        card.style.setProperty('--c2', typeColor2);
+
+        card.innerHTML = `
+            <div class="holo-card-content">
+                <div class="card-header">
+                    <span>${cardData.name}</span>
+                    <span class="card-hp">${cardData.hp} HP</span>
+                </div>
+                <div class="card-image">
+                    <img src="${cardData.image}" alt="${cardData.name}">
+                </div>
+                <div class="card-stats">
+                    <div class="stat-row">
+                        <span>Type</span>
+                        <span>${type.toUpperCase()}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Attack</span>
+                        <span>${cardData.attack}</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Defense</span>
+                        <span>${cardData.defense}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 3D Tilt Logic
+        card.addEventListener('mousemove', function (e) {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+
+            const rotateX = ((y - centerY) / centerY) * -10; // Max rotation deg
+            const rotateY = ((x - centerX) / centerX) * 10;
+
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
+
+            // Move gradient
+            const percentX = (x / rect.width) * 100;
+            const percentY = (y / rect.height) * 100;
+
+            card.style.setProperty('--bg-x', `${percentX}%`);
+            card.style.setProperty('--bg-y', `${percentY}%`);
+        });
+
+        card.addEventListener('mouseleave', function () {
+            card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+        });
+
+        cardContainer.appendChild(card);
+        content.appendChild(cardContainer);
+    }
     // Show comparison images (VS View)
-    if (sender === 'bot' && comparisonImages && comparisonImages.length >= 2) {
+    else if (sender === 'bot' && comparisonImages && comparisonImages.length >= 2) {
         const compContainer = document.createElement('div');
         compContainer.className = 'comparison-container';
 

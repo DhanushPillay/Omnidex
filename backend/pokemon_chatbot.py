@@ -598,6 +598,39 @@ class PokemonChatbot:
             pass
         
         return None
+        
+    def _get_card_data(self, pokemon_name):
+        """Get data for holographic card"""
+        matched_name = self._fuzzy_find_pokemon(pokemon_name)
+        if not matched_name:
+            return None
+            
+        try:
+            pokemon = self.df[self.df['Name'] == matched_name].iloc[0]
+            
+            # Helper to get type color (used as fallback or additional data)
+            primary_type = pokemon['Type1']
+            
+            # Get High-Res Official Art
+            image_url = self._get_sprite_url(matched_name)
+            
+            # Stats for the card
+            hp = int(pokemon['HP'])
+            attack = int(pokemon['Attack'])
+            defense = int(pokemon['Defense'])
+            
+            return {
+                'name': matched_name,
+                'image': image_url,
+                'type': primary_type.lower(),
+                'hp': hp,
+                'attack': attack,
+                'defense': defense,
+                'id': int(pokemon['Generation']) # Using generation as a mock ID placeholder logic or fetch real ID if needed
+            }
+        except Exception as e:
+            print(f"Error getting card data: {e}")
+            return None
     
     def _get_similar_pokemon(self, pokemon_name, n=5):
         """Get similar Pokemon using KNN based on stats"""
@@ -631,6 +664,16 @@ class PokemonChatbot:
         # Get current topic from context
         topic = context.get('current_topic', 'general')
         
+        # Build history string for context
+        history = context.get('conversation_history', [])
+        history_str = ""
+        if history:
+            # Take last 3 exchanges
+            recent = history[-3:] 
+            for h in recent:
+                role = "User" if h['role'] == 'user' else "Omnidex"
+                history_str += f"{role}: {h['content']}\n"
+        
         # Topic-specific instructions
         topic_instruction = ""
         if topic == 'battle':
@@ -648,6 +691,9 @@ class PokemonChatbot:
             prompt = f"""You are Omnidex, an expert AI Pokemon Professor.
 Transform this raw data into a natural, conversational response.
 
+RECENT CONVERSATION:
+{history_str}
+
 User asked: "{user_question}"
 Topic: {topic.upper()}
 
@@ -660,6 +706,7 @@ Instructions:
 - Use 1-2 relevant emoji
 - Sound natural, exclude raw JSON formatting
 - If data is a list, weave it into a sentence naturally
+- Reference previous context if relevant
 """
 
             response = self.gemini_model.generate_content(prompt)
@@ -667,6 +714,42 @@ Instructions:
         except Exception as e:
             print(f"Gemini error: {e}")
             return data  # Fallback to raw data
+            
+    def _answer_general_knowledge(self, question, context):
+        """Use Gemini to answer general Pokemon questions not in CSV"""
+        if not self.gemini_model:
+            return "I don't have that information in my database."
+            
+        try:
+            # Build history string for context
+            history = context.get('conversation_history', [])
+            history_str = ""
+            if history:
+                recent = history[-3:] 
+                for h in recent:
+                    role = "User" if h['role'] == 'user' else "Omnidex"
+                    history_str += f"{role}: {h['content']}\n"
+
+            prompt = f"""You are Omnidex, an expert AI Pokemon Professor.
+Answer the user's question about Pokemon using your general knowledge.
+
+RECENT CONVERSATION:
+{history_str}
+
+User asked: "{question}"
+
+Instructions:
+- Answer ONLY if it relates to Pokemon (anime, games, manga, lore).
+- If it's not about Pokemon, politely redirect them to ask about Pokemon.
+- Be friendly, enthusiastic and knowledgeable.
+- Keep it to 2-3 sentences.
+- Use 1-2 emoji.
+"""
+            response = self.gemini_model.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            print(f"Gemini general knowledge error: {e}")
+            return "I'm having trouble accessing my Pokemon knowledge base right now."
         
     def answer_question(self, question, context):
         """Process natural language questions about Pokemon using ML"""
@@ -834,6 +917,23 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                 data = self._get_evolution_info(pokemon_name, context)
                 context['last_pokemon'] = pokemon_name
                 return self._make_conversational(data, original_question, context)
+
+        # ============ NEW: HOLOGRAPHIC CARD QUERY ============
+        elif intent == "card":
+            pokemon_name = self._extract_pokemon_name(question_lower)
+            if not pokemon_name and context.get('last_pokemon'):
+                pokemon_name = context['last_pokemon']
+                
+            if pokemon_name:
+                card_data = self._get_card_data(pokemon_name)
+                if card_data:
+                    context['last_pokemon'] = pokemon_name
+                    # Make a conversational response
+                    response = self._make_conversational(f"Here is a holographic card for {pokemon_name}!", original_question, context)
+                    # We will attach the card_data in app.py, but we need to signal it here or context
+                    # Store card data in context temporarily so app.py can grab it
+                    context['card_data'] = card_data
+                    return response
         
         # ============ NEW: CONTEXT-AWARE QUERIES ============
         elif intent and intent.startswith("context_"):
@@ -895,8 +995,8 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             if result:
                 return self._make_conversational(result, original_question, context)
         
-        # Final fallback: search the web for Pokemon-related info
-        return self._search_web(original_question)
+        # Final fallback: Use Gemini for general knowledge
+        return self._answer_general_knowledge(original_question, context)
     
     def _extract_pokemon_name(self, text):
         """Extract a Pokemon name from text using fuzzy matching"""
