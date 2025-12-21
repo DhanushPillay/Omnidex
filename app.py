@@ -1,16 +1,20 @@
 import sys
 import os
+import secrets
 
 # Add backend folder to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
 from pokemon_chatbot import PokemonChatbot
 
 # Configure Flask with new folder structure
 app = Flask(__name__, 
             template_folder='.',
             static_folder='static')
+
+# Set secret key for sessions
+app.secret_key = secrets.token_hex(16)
 
 # Initialize the chatbot with new data path
 chatbot = PokemonChatbot('data/pokemon_data.csv')
@@ -30,8 +34,23 @@ def ask():
         if not question:
             return jsonify({'error': 'No question provided'}), 400
         
-        # Get response from chatbot
-        response = chatbot.answer_question(question)
+        # Initialize context in session if not present
+        if 'context' not in session:
+            session['context'] = {
+                'last_pokemon': None,
+                'last_intent': None,
+                'conversation_history': [],      
+                'mentioned_pokemon': [],          
+                'compared_pokemon': [],           
+                'current_topic': None,            
+                'evolution_chain': None           
+            }
+        
+        # Get context from session
+        context = session['context']
+
+        # Get response from chatbot, passing context
+        response = chatbot.answer_question(question, context)
         
         # Try to extract Pokemon name and get rich context
         image_url = None
@@ -46,11 +65,12 @@ def ask():
         # If no Pokemon name found, try to use context from response or last_pokemon
         if not pokemon_name:
             # Check if there's a Pokemon name in the conversation context
-            pokemon_name = chatbot.conversation_context.get('last_pokemon')
+            pokemon_name = context.get('last_pokemon')
         
         if pokemon_name:
             image_url = chatbot._get_sprite_url(pokemon_name)
-            chatbot.conversation_context['last_pokemon'] = pokemon_name
+            # Update last_pokemon in context (if not already set by answer_question)
+            context['last_pokemon'] = pokemon_name
             
             # Get rich context from CSV for Grok
             matched = chatbot._fuzzy_find_pokemon(pokemon_name)
@@ -86,11 +106,15 @@ def ask():
                     pass
         
         # Get evolution chain if available
-        evolution_chain = chatbot.conversation_context.get('evolution_chain')
+        evolution_chain = context.get('evolution_chain')
         # Clear it after reading so it doesn't persist to next query
         if evolution_chain:
-            chatbot.conversation_context['evolution_chain'] = None
+            context['evolution_chain'] = None
         
+        # Save context back to session
+        session['context'] = context
+        session.modified = True
+
         return jsonify({
             'success': True,
             'response': response,

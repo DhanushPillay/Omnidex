@@ -92,16 +92,8 @@ class PokemonChatbot:
         # Store Pokemon names for fuzzy matching
         self.pokemon_names = self.df['Name'].tolist()
         
-        # Enhanced Conversation Memory - Multi-turn context
-        self.conversation_context = {
-            'last_pokemon': None,
-            'last_intent': None,
-            'conversation_history': [],      # Full history [{role, content, pokemon, intent}]
-            'mentioned_pokemon': [],          # All Pokemon mentioned in session
-            'compared_pokemon': [],           # Pokemon being compared
-            'current_topic': None,            # battle, evolution, stats, lore, etc.
-            'evolution_chain': None           # For evolution queries
-        }
+        # Enhanced Conversation Memory - Multi-turn context is now passed per request
+        # self.conversation_context removed to be stateless
         
         # Self-learning: cache for learned data from web
         self.learned_data = {}
@@ -397,7 +389,7 @@ class PokemonChatbot:
     
     # ============ CONVERSATION MEMORY METHODS ============
     
-    def _add_to_history(self, role, content, pokemon=None, intent=None):
+    def _add_to_history(self, context, role, content, pokemon=None, intent=None):
         """Add an exchange to conversation history"""
         entry = {
             'role': role,  # 'user' or 'bot'
@@ -405,24 +397,24 @@ class PokemonChatbot:
             'pokemon': pokemon,
             'intent': intent
         }
-        self.conversation_context['conversation_history'].append(entry)
+        context['conversation_history'].append(entry)
         
         # Keep only last 10 exchanges (sliding window)
-        if len(self.conversation_context['conversation_history']) > 10:
-            self.conversation_context['conversation_history'] = \
-                self.conversation_context['conversation_history'][-10:]
+        if len(context['conversation_history']) > 10:
+            context['conversation_history'] = \
+                context['conversation_history'][-10:]
         
         # Track mentioned Pokemon
-        if pokemon and pokemon not in self.conversation_context['mentioned_pokemon']:
-            self.conversation_context['mentioned_pokemon'].append(pokemon)
+        if pokemon and pokemon not in context['mentioned_pokemon']:
+            context['mentioned_pokemon'].append(pokemon)
             # Keep last 5 mentioned Pokemon
-            if len(self.conversation_context['mentioned_pokemon']) > 5:
-                self.conversation_context['mentioned_pokemon'] = \
-                    self.conversation_context['mentioned_pokemon'][-5:]
+            if len(context['mentioned_pokemon']) > 5:
+                context['mentioned_pokemon'] = \
+                    context['mentioned_pokemon'][-5:]
     
-    def _get_context_summary(self):
+    def _get_context_summary(self, context):
         """Get a summary of recent conversation for AI context"""
-        history = self.conversation_context['conversation_history']
+        history = context['conversation_history']
         if not history:
             return ""
         
@@ -437,7 +429,7 @@ class PokemonChatbot:
         
         return "\n".join(summary_parts)
     
-    def _resolve_pronoun(self, text):
+    def _resolve_pronoun(self, text, context):
         """Resolve pronouns like 'it', 'this one', 'that Pokemon' to actual names"""
         pronouns = ['it', 'its', 'this one', 'that one', 'this pokemon', 'that pokemon', 
                     'the first one', 'the second one', 'the first', 'the second']
@@ -446,13 +438,13 @@ class PokemonChatbot:
         for pronoun in pronouns:
             if pronoun in text_lower:
                 # 'first' refers to first in comparison, 'second' to second
-                if 'first' in pronoun and len(self.conversation_context.get('compared_pokemon', [])) >= 1:
-                    return self.conversation_context['compared_pokemon'][0]
-                elif 'second' in pronoun and len(self.conversation_context.get('compared_pokemon', [])) >= 2:
-                    return self.conversation_context['compared_pokemon'][1]
+                if 'first' in pronoun and len(context.get('compared_pokemon', [])) >= 1:
+                    return context['compared_pokemon'][0]
+                elif 'second' in pronoun and len(context.get('compared_pokemon', [])) >= 2:
+                    return context['compared_pokemon'][1]
                 # Otherwise use last mentioned Pokemon
-                elif self.conversation_context.get('last_pokemon'):
-                    return self.conversation_context['last_pokemon']
+                elif context.get('last_pokemon'):
+                    return context['last_pokemon']
         
         return None
     
@@ -631,13 +623,13 @@ class PokemonChatbot:
         
         return similar, pokemon_match
     
-    def _make_conversational(self, data, user_question):
+    def _make_conversational(self, data, user_question, context):
         """Use Gemini to make a response sound natural and conversational"""
         if not self.gemini_model:
             return data  # Return raw data if no Gemini
         
         # Get current topic from context
-        topic = self.conversation_context.get('current_topic', 'general')
+        topic = context.get('current_topic', 'general')
         
         # Topic-specific instructions
         topic_instruction = ""
@@ -676,7 +668,7 @@ Instructions:
             print(f"Gemini error: {e}")
             return data  # Fallback to raw data
         
-    def answer_question(self, question):
+    def answer_question(self, question, context):
         """Process natural language questions about Pokemon using ML"""
         original_question = question
         question_lower = question.lower().strip()
@@ -700,7 +692,7 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
         
         # ============ PRONOUN RESOLUTION ============
         # Check if user used pronouns like "it", "its", "this one"
-        resolved_pokemon = self._resolve_pronoun(question_lower)
+        resolved_pokemon = self._resolve_pronoun(question_lower, context)
         if resolved_pokemon:
             # Replace pronouns with actual Pokemon name for processing
             for pronoun in ['it', 'its', 'this one', 'that one', 'this pokemon', 'that pokemon']:
@@ -708,14 +700,14 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                     question_lower = question_lower.replace(pronoun, resolved_pokemon.lower())
         
         # Add user message to history
-        self._add_to_history('user', question)
+        self._add_to_history(context, 'user', question)
         
         # Use ML to classify intent
         intent, confidence = self._classify_intent(question_lower)
         print(f"🤖 ML Intent: {intent} (confidence: {confidence:.2f})")
         
         # Detect and update topic
-        self.conversation_context['current_topic'] = self._detect_topic(intent, question_lower)
+        context['current_topic'] = self._detect_topic(intent, question_lower)
         
         # Handle based on detected intent
         if intent == "type_query":
@@ -726,7 +718,7 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             for ptype in pokemon_types:
                 if ptype.lower() in question_lower:
                     data = self._get_pokemon_by_type(ptype)
-                    return self._make_conversational(data, original_question)
+                    return self._make_conversational(data, original_question, context)
         
         elif intent == "pokemon_info":
             # Extract Pokemon name using fuzzy matching
@@ -734,11 +726,12 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             if pokemon_name:
                 result = self._get_pokemon_info(pokemon_name)
                 if result:
-                    return self._make_conversational(result, original_question)
+                    context['last_pokemon'] = pokemon_name
+                    return self._make_conversational(result, original_question, context)
         
         elif intent == "count_legendary":
             data = self._count_legendary()
-            return self._make_conversational(data, original_question)
+            return self._make_conversational(data, original_question, context)
         
         elif intent == "count_type":
             pokemon_types = ['Fire', 'Water', 'Grass', 'Electric', 'Psychic', 'Dragon', 
@@ -747,10 +740,10 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             for ptype in pokemon_types:
                 if ptype.lower() in question_lower:
                     data = self._count_type(ptype)
-                    return self._make_conversational(data, original_question)
+                    return self._make_conversational(data, original_question, context)
         
         elif intent == "count_total":
-            return self._make_conversational(f"There are {len(self.df)} Pokemon in the database.", original_question)
+            return self._make_conversational(f"There are {len(self.df)} Pokemon in the database.", original_question, context)
         
         elif intent == "stat_leader":
             if 'attack' in question_lower:
@@ -763,22 +756,22 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                 data = self._get_stat_leader('HP', 'highest')
             else:
                 data = self._get_stat_leader('Attack', 'highest')
-            return self._make_conversational(data, original_question)
+            return self._make_conversational(data, original_question, context)
         
         elif intent == "strongest_overall":
             data = self._get_strongest_overall()
-            return self._make_conversational(data, original_question)
+            return self._make_conversational(data, original_question, context)
         
         elif intent == "list_legendary":
             data = self._get_legendary_pokemon()
-            return self._make_conversational(data, original_question)
+            return self._make_conversational(data, original_question, context)
         
         elif intent == "generation_query":
             gen_match = re.search(r'gen(?:eration)?\s*(\d+)', question_lower)
             if gen_match:
                 gen = int(gen_match.group(1))
                 data = self._get_pokemon_by_generation(gen)
-                return self._make_conversational(data, original_question)
+                return self._make_conversational(data, original_question, context)
         
         elif intent == "compare":
             # Extract two Pokemon names for comparison
@@ -786,13 +779,13 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             if len(pokemon_names) >= 2:
                 data = self._compare_pokemon(pokemon_names[0], pokemon_names[1])
                 # Set context to the first Pokemon for follow-up questions
-                self.conversation_context['last_pokemon'] = pokemon_names[0]
-                self.conversation_context['compared_pokemon'] = pokemon_names  # Store both
-                return self._make_conversational(data, original_question)
+                context['last_pokemon'] = pokemon_names[0]
+                context['compared_pokemon'] = pokemon_names  # Store both
+                return self._make_conversational(data, original_question, context)
         
         elif intent == "dual_type":
             data = self._get_dual_type_pokemon()
-            return self._make_conversational(data, original_question)
+            return self._make_conversational(data, original_question, context)
         
         elif intent == "recommend":
             # Extract Pokemon name for recommendations
@@ -803,7 +796,7 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                     data = f"Pokemon similar to {matched_name}:\n"
                     for s in similar:
                         data += f"• {s['name']} ({s['type']}) - {s['similarity']}% similar\n"
-                    return self._make_conversational(data, original_question)
+                    return self._make_conversational(data, original_question, context)
         
         # ============ NEW: WEAKNESS QUERIES ============
         elif intent == "weakness":
@@ -811,37 +804,37 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             pokemon_name = self._extract_pokemon_name(question_lower)
             if pokemon_name:
                 data = self._get_pokemon_weakness(pokemon_name)
-                self.conversation_context['last_pokemon'] = pokemon_name
-                return self._make_conversational(data, original_question)
+                context['last_pokemon'] = pokemon_name
+                return self._make_conversational(data, original_question, context)
             # Otherwise check for type name
             for ptype in self.TYPE_CHART.keys():
                 if ptype.lower() in question_lower:
                     data = self._get_type_weakness(ptype)
-                    return self._make_conversational(data, original_question)
+                    return self._make_conversational(data, original_question, context)
         
         # ============ NEW: STRENGTH QUERIES ============
         elif intent == "strength":
             pokemon_name = self._extract_pokemon_name(question_lower)
             if pokemon_name:
                 data = self._get_pokemon_strength(pokemon_name)
-                self.conversation_context['last_pokemon'] = pokemon_name
-                return self._make_conversational(data, original_question)
+                context['last_pokemon'] = pokemon_name
+                return self._make_conversational(data, original_question, context)
             for ptype in self.TYPE_CHART.keys():
                 if ptype.lower() in question_lower:
                     data = self._get_type_strength(ptype)
-                    return self._make_conversational(data, original_question)
+                    return self._make_conversational(data, original_question, context)
         
         # ============ NEW: EVOLUTION QUERIES ============
         elif intent == "evolution":
             pokemon_name = self._extract_pokemon_name(question_lower)
             if pokemon_name:
-                data = self._get_evolution_info(pokemon_name)
-                self.conversation_context['last_pokemon'] = pokemon_name
-                return self._make_conversational(data, original_question)
+                data = self._get_evolution_info(pokemon_name, context)
+                context['last_pokemon'] = pokemon_name
+                return self._make_conversational(data, original_question, context)
         
         # ============ NEW: CONTEXT-AWARE QUERIES ============
         elif intent and intent.startswith("context_"):
-            last_pokemon = self.conversation_context.get('last_pokemon')
+            last_pokemon = context.get('last_pokemon')
             if last_pokemon:
                 if intent == "context_stat":
                     # Check which stat they're asking about
@@ -859,32 +852,32 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                         data = f"{last_pokemon}'s HP is {pokemon['HP']}."
                     else:
                         data = self._get_pokemon_info(last_pokemon)
-                    return self._make_conversational(data, original_question)
+                    return self._make_conversational(data, original_question, context)
                 elif intent == "context_type":
                     pokemon = self.df[self.df['Name'] == last_pokemon].iloc[0]
                     type_str = pokemon['Type1']
                     if pokemon['Type2']:
                         type_str += f" and {pokemon['Type2']}"
                     data = f"{last_pokemon} is a {type_str} type Pokemon."
-                    return self._make_conversational(data, original_question)
+                    return self._make_conversational(data, original_question, context)
                 elif intent == "context_legendary":
                     pokemon = self.df[self.df['Name'] == last_pokemon].iloc[0]
                     is_legendary = "Yes, it is!" if pokemon['Legendary'] else "No, it's not."
                     data = f"Is {last_pokemon} legendary? {is_legendary}"
-                    return self._make_conversational(data, original_question)
+                    return self._make_conversational(data, original_question, context)
                 elif intent == "context_weakness":
                     data = self._get_pokemon_weakness(last_pokemon)
-                    return self._make_conversational(data, original_question)
+                    return self._make_conversational(data, original_question, context)
                 elif intent == "context_evolution":
-                    data = self._get_evolution_info(last_pokemon)
-                    return self._make_conversational(data, original_question)
+                    data = self._get_evolution_info(last_pokemon, context)
+                    return self._make_conversational(data, original_question, context)
                 elif intent == "context_recommend":
                     similar, matched_name = self._get_similar_pokemon(last_pokemon)
                     if similar:
                         data = f"Pokemon similar to {matched_name}:\n"
                         for s in similar:
                             data += f"• {s['name']} ({s['type']}) - {s['similarity']}% similar\n"
-                        return self._make_conversational(data, original_question)
+                        return self._make_conversational(data, original_question, context)
                 elif intent == "context_story":
                     # Search for the last Pokemon's story/lore
                     return self._search_web(f"{last_pokemon} Pokemon lore backstory origin")
@@ -894,10 +887,10 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
         # Fallback: Try to extract and look up a Pokemon name
         pokemon_name = self._extract_pokemon_name(question_lower)
         if pokemon_name:
-            self.conversation_context['last_pokemon'] = pokemon_name
+            context['last_pokemon'] = pokemon_name
             result = self._get_pokemon_info(pokemon_name)
             if result:
-                return self._make_conversational(result, original_question)
+                return self._make_conversational(result, original_question, context)
         
         # Final fallback: search the web for Pokemon-related info
         return self._search_web(original_question)
@@ -1253,7 +1246,7 @@ Instructions:
         
         return result
     
-    def _get_evolution_info(self, pokemon_name):
+    def _get_evolution_info(self, pokemon_name, context):
         """Get evolution information for a Pokemon from local data or PokeAPI"""
         matched_name = self._fuzzy_find_pokemon(pokemon_name)
         if not matched_name:
@@ -1320,7 +1313,7 @@ Instructions:
                     parse_chain(chain)
                     
                     # Store evolution sprites for frontend
-                    self.conversation_context['evolution_chain'] = evo_list
+                    context['evolution_chain'] = evo_list
                     
                     # Format text chain
                     for evo in evo_list:

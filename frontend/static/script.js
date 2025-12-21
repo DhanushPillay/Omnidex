@@ -24,88 +24,9 @@ async function sendMessage() {
         hideTyping();
 
         if (data.success) {
-            let finalResponse = data.response;
-
-            // Enhance with Grok AI using rich context + enhanced personality
-            try {
-                if (typeof puter !== 'undefined' && puter.ai) {
-                    // Build rich context string if we have Pokemon data
-                    let contextStr = data.response;
-                    if (data.pokemon_context) {
-                        const ctx = data.pokemon_context;
-                        contextStr = `
-Pokemon: ${ctx.name}
-Type: ${ctx.type1}${ctx.type2 ? '/' + ctx.type2 : ''}
-Stats: HP ${ctx.hp}, Attack ${ctx.attack}, Defense ${ctx.defense}, Speed ${ctx.speed}
-Generation: ${ctx.generation}
-Legendary: ${ctx.legendary ? 'Yes' : 'No'}
-${ctx.weak_to ? 'Weak to: ' + ctx.weak_to.join(', ') : ''}
-${ctx.strong_against ? 'Strong against: ' + ctx.strong_against.join(', ') : ''}`;
-                    }
-
-                    // Add lore/story info from web search
-                    let loreStr = '';
-                    if (data.lore_info && data.lore_info.length > 0) {
-                        loreStr = '\n\nLore from Internet:\n' + data.lore_info.map(l =>
-                            `- ${l.title}: ${l.body}`
-                        ).join('\n');
-                    }
-
-                    // Add conversation history for context
-                    let historyStr = '';
-                    if (conversationHistory.length > 0) {
-                        const recentHistory = conversationHistory.slice(-4);
-                        historyStr = '\n\nRecent Conversation:\n' + recentHistory.map(h =>
-                            `${h.role}: ${h.content}`
-                        ).join('\n');
-                    }
-
-                    // Track this exchange
-                    conversationHistory.push({ role: 'User', content: question });
-
-                    const grokResponse = await puter.ai.chat(
-                        `You are Omnidex, an enthusiastic Pokemon Professor AI assistant. 
-
-PERSONALITY:
-- Speak like a friendly Pokemon trainer and researcher
-- Show genuine enthusiasm about Pokemon, especially rare and legendary ones
-- Share fun facts and trivia when relevant
-- Reference Pokemon regions (Kanto, Johto, Unova, etc.) naturally
-- Use 1-2 Pokemon-themed emojis 
-- Be warm, helpful, and engaging
-- Remember what was discussed earlier if history is provided
-${historyStr}
-
-User asked: "${question}"
-
-Pokemon Database:
-${contextStr}
-${loreStr}
-
-RESPONSE GUIDELINES:
-- 2-4 sentences, natural and conversational
-- If comparing Pokemon, give battle insights
-- If discussing evolution, mention how exciting the transformation is
-- If discussing lore/story, be a storyteller
-- If discussing stats, be analytical but fun
-- Always sound like you genuinely love Pokemon!`,
-                        { model: 'x-ai/grok-4.1-fast', max_tokens: 300 }
-                    );
-                    if (grokResponse?.message?.content) {
-                        finalResponse = grokResponse.message.content;
-                        // Track bot response
-                        conversationHistory.push({ role: 'Omnidex', content: finalResponse.substring(0, 100) });
-                        // Keep only last 10 exchanges
-                        if (conversationHistory.length > 10) {
-                            conversationHistory = conversationHistory.slice(-10);
-                        }
-                    }
-                }
-            } catch (e) {
-                console.log('Grok skipped:', e.message);
-            }
-
-            addMessage(finalResponse, 'bot', data.image_url, data.evolution_chain);
+            // Backend now handles all personality/formatting
+            // Only need to display the response
+            addMessage(data.response, 'bot', data.image_url, data.evolution_chain);
         } else {
             addMessage('Something went wrong. Please try again.', 'bot');
         }
