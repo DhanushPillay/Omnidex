@@ -8,10 +8,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
 from flask import Flask, render_template, request, jsonify, session
 from pokemon_chatbot import PokemonChatbot
 
-# Configure Flask with new folder structure
+# Configure Flask with correct folder structure for deployment
 app = Flask(__name__, 
-            template_folder='.',
-            static_folder='static')
+            template_folder='frontend/templates',
+            static_folder='frontend/static')
 
 # Set secret key for sessions
 app.secret_key = secrets.token_hex(16)

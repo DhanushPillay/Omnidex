@@ -17,9 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application
 COPY . .
 
-# Expose port (Render sets PORT env var)
-ENV PORT=5000
-EXPOSE 5000
+# Hugging Face Spaces uses port 7860
+ENV PORT=7860
+EXPOSE 7860
 
-# Run the application (using gunicorn for production)
+# Run the application
 CMD gunicorn app:app --bind 0.0.0.0:$PORT
