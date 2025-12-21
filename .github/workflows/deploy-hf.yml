@@ -24,4 +24,15 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          huggingface-cli upload DecryptVoid/Omnidex . . --repo-type=space --token=$HF_TOKEN --exclude=".git/*" --exclude=".venv/*" --exclude="__pycache__/*" --exclude="*.pyc" --exclude="hf_upload/*"
+          python -c "
+          from huggingface_hub import HfApi
+          api = HfApi()
+          api.upload_folder(
+              folder_path='.',
+              repo_id='DecryptVoid/Omnidex',
+              repo_type='space',
+              token='$HF_TOKEN',
+              ignore_patterns=['*.git*', '.venv/*', '__pycache__/*', '*.pyc', 'hf_upload/*', '.github/*']
+          )
+          print('Upload complete!')
+          "
