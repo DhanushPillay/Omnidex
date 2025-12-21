@@ -26,7 +26,7 @@ async function sendMessage() {
         if (data.success) {
             // Backend now handles all personality/formatting
             // Only need to display the response
-            addMessage(data.response, 'bot', data.image_url, data.evolution_chain);
+            addMessage(data.response, 'bot', data.image_url, data.evolution_chain, data.comparison_images);
         } else {
             addMessage('Something went wrong. Please try again.', 'bot');
         }
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Add message to chat (updated for avatar)
-function addMessage(text, sender, imageUrl = null, evolutionChain = null) {
+function addMessage(text, sender, imageUrl = null, evolutionChain = null, comparisonImages = null) {
     const area = document.getElementById('messages-area');
 
     const msg = document.createElement('div');
@@ -60,8 +60,36 @@ function addMessage(text, sender, imageUrl = null, evolutionChain = null) {
     const content = document.createElement('div');
     content.className = 'message-content';
 
+    // Show comparison images (VS View)
+    if (sender === 'bot' && comparisonImages && comparisonImages.length >= 2) {
+        const compContainer = document.createElement('div');
+        compContainer.className = 'comparison-container';
+
+        // First Pokemon
+        const p1 = comparisonImages[0];
+        const card1 = document.createElement('div');
+        card1.className = 'pokemon-vs-card';
+        card1.innerHTML = `<img src="${p1.image}" alt="${p1.name}"><span>${p1.name}</span>`;
+
+        // VS Badge
+        const vsBadge = document.createElement('div');
+        vsBadge.className = 'vs-badge';
+        vsBadge.textContent = 'VS';
+
+        // Second Pokemon
+        const p2 = comparisonImages[1];
+        const card2 = document.createElement('div');
+        card2.className = 'pokemon-vs-card';
+        card2.innerHTML = `<img src="${p2.image}" alt="${p2.name}"><span>${p2.name}</span>`;
+
+        compContainer.appendChild(card1);
+        compContainer.appendChild(vsBadge);
+        compContainer.appendChild(card2);
+
+        content.appendChild(compContainer);
+    }
     // Show evolution chain if available (multiple Pokemon images)
-    if (sender === 'bot' && evolutionChain && evolutionChain.length > 0) {
+    else if (sender === 'bot' && evolutionChain && evolutionChain.length > 0) {
         const evoContainer = document.createElement('div');
         evoContainer.className = 'evolution-chain';
         evolutionChain.forEach((evo, index) => {

@@ -706,6 +706,9 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
         intent, confidence = self._classify_intent(question_lower)
         print(f"🤖 ML Intent: {intent} (confidence: {confidence:.2f})")
         
+        # Save intent to context
+        context['last_intent'] = intent
+        
         # Detect and update topic
         context['current_topic'] = self._detect_topic(intent, question_lower)
         

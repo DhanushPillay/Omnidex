@@ -54,6 +54,7 @@ def ask():
         
         # Try to extract Pokemon name and get rich context
         image_url = None
+        comparison_images = []
         pokemon_name = chatbot._extract_pokemon_name(question.lower())
         pokemon_context = None
         lore_info = None
@@ -62,13 +63,28 @@ def ask():
         story_keywords = ['story', 'lore', 'backstory', 'origin', 'history', 'found', 'created', 'discovered', 'legend']
         is_story_query = any(kw in question.lower() for kw in story_keywords)
         
-        # If no Pokemon name found, try to use context from response or last_pokemon
-        if not pokemon_name:
+        # Check if it was a comparison
+        if context.get('last_intent') == 'compare':
+            compared_list = context.get('compared_pokemon', [])
+            if len(compared_list) >= 2:
+                img1 = chatbot._get_sprite_url(compared_list[0])
+                img2 = chatbot._get_sprite_url(compared_list[1])
+                comparison_images = [
+                    {'name': compared_list[0], 'image': img1},
+                    {'name': compared_list[1], 'image': img2}
+                ]
+                # Default image to first one
+                image_url = img1
+                pokemon_name = compared_list[0]
+        
+        # If no Pokemon name found (and not comparing), try to use context
+        if not pokemon_name and not comparison_images:
             # Check if there's a Pokemon name in the conversation context
             pokemon_name = context.get('last_pokemon')
         
         if pokemon_name:
-            image_url = chatbot._get_sprite_url(pokemon_name)
+            if not image_url:
+                image_url = chatbot._get_sprite_url(pokemon_name)
             # Update last_pokemon in context (if not already set by answer_question)
             context['last_pokemon'] = pokemon_name
             
@@ -119,6 +135,7 @@ def ask():
             'success': True,
             'response': response,
             'image_url': image_url,
+            'comparison_images': comparison_images,
             'pokemon_name': pokemon_name,
             'pokemon_context': pokemon_context,
             'lore_info': lore_info,
