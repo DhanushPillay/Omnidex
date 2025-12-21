@@ -598,39 +598,6 @@ class PokemonChatbot:
             pass
         
         return None
-        
-    def _get_card_data(self, pokemon_name):
-        """Get data for holographic card"""
-        matched_name = self._fuzzy_find_pokemon(pokemon_name)
-        if not matched_name:
-            return None
-            
-        try:
-            pokemon = self.df[self.df['Name'] == matched_name].iloc[0]
-            
-            # Helper to get type color (used as fallback or additional data)
-            primary_type = pokemon['Type1']
-            
-            # Get High-Res Official Art
-            image_url = self._get_sprite_url(matched_name)
-            
-            # Stats for the card
-            hp = int(pokemon['HP'])
-            attack = int(pokemon['Attack'])
-            defense = int(pokemon['Defense'])
-            
-            return {
-                'name': matched_name,
-                'image': image_url,
-                'type': primary_type.lower(),
-                'hp': hp,
-                'attack': attack,
-                'defense': defense,
-                'id': int(pokemon['Generation']) # Using generation as a mock ID placeholder logic or fetch real ID if needed
-            }
-        except Exception as e:
-            print(f"Error getting card data: {e}")
-            return None
     
     def _get_similar_pokemon(self, pokemon_name, n=5):
         """Get similar Pokemon using KNN based on stats"""
@@ -917,23 +884,6 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                 data = self._get_evolution_info(pokemon_name, context)
                 context['last_pokemon'] = pokemon_name
                 return self._make_conversational(data, original_question, context)
-
-        # ============ NEW: HOLOGRAPHIC CARD QUERY ============
-        elif intent == "card":
-            pokemon_name = self._extract_pokemon_name(question_lower)
-            if not pokemon_name and context.get('last_pokemon'):
-                pokemon_name = context['last_pokemon']
-                
-            if pokemon_name:
-                card_data = self._get_card_data(pokemon_name)
-                if card_data:
-                    context['last_pokemon'] = pokemon_name
-                    # Make a conversational response
-                    response = self._make_conversational(f"Here is a holographic card for {pokemon_name}!", original_question, context)
-                    # We will attach the card_data in app.py, but we need to signal it here or context
-                    # Store card data in context temporarily so app.py can grab it
-                    context['card_data'] = card_data
-                    return response
         
         # ============ NEW: CONTEXT-AWARE QUERIES ============
         elif intent and intent.startswith("context_"):
