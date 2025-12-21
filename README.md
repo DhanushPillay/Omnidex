@@ -1,17 +1,26 @@
-# Omnidex - Pokemon AI Chatbot 🧠
+---
+title: Omnidex
+emoji: 🔴
+colorFrom: red
+colorTo: yellow
+sdk: docker
+pinned: false
+license: mit
+---
 
-Omnidex is an intelligent AI chatbot for Pokemon, capable of understanding game stats, lore, evolution chains, and type matchups.
+# Omnidex - Pokemon AI Assistant
 
-## 🚀 Live Demo
-Deploying to Vercel...
+An intelligent Pokemon chatbot powered by Gemini AI that can answer questions about Pokemon stats, types, evolutions, and more!
 
-## 🛠 Feature Stack
-- **Frontend**: HTML5, CSS3, Vanilla JS
-- **Backend (Vercel)**: Python Flask (Serverless) + PokeAPI
-- **Backend (Local)**: Python + Pandas + Scikit-Learn + Gemini AI
+## Features
+- 🔍 Pokemon info lookup
+- ⚔️ Type matchups and weaknesses
+- 📊 Compare Pokemon stats
+- 🧬 Evolution chains
+- 💬 Natural conversation with AI
 
-## 🧠 AI Capabilities (Local Version)
-- **Natural Language Understanding**: Uses TF-IDF & Sentence Transformers
-- **Multi-Turn Memory**: Remembers context across conversation
-- **Personality**: "Grok" style enthusiastic Pokemon Professor
-- **Type Intelligence**: Understands complex type effectiveness
+## Usage
+Just ask anything about Pokemon!
+- "Tell me about Pikachu"
+- "What is Charizard weak to?"
+- "Compare Mewtwo and Mew"
