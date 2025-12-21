@@ -11,12 +11,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          lfs: true
       
-      - name: Push to Hugging Face
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install HF CLI
+        run: pip install huggingface_hub
+      
+      - name: Upload to HF Spaces
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git remote add hf https://DecryptVoid:$HF_TOKEN@huggingface.co/spaces/DecryptVoid/Omnidex
-          git push hf main --force
+          huggingface-cli upload DecryptVoid/Omnidex . . --repo-type=space --token=$HF_TOKEN --exclude=".git/*" --exclude=".venv/*" --exclude="__pycache__/*" --exclude="*.pyc" --exclude="hf_upload/*"
