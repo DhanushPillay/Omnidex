@@ -10,6 +10,8 @@ license: mit
 
 # Omnidex - Pokemon AI Assistant
 
+🔴 **Live Demo**: [https://huggingface.co/spaces/DecryptVoid/Omnidex](https://huggingface.co/spaces/DecryptVoid/Omnidex)
+
 An intelligent Pokemon chatbot powered by Gemini AI that can answer questions about Pokemon stats, types, evolutions, and more!
 
 ## Features
