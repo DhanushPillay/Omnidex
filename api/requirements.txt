@@ -1,5 +1,0 @@
-# FastAPI for Vercel
-fastapi
-uvicorn
-requests
-pydantic
