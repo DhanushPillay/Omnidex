@@ -10,11 +10,11 @@ license: mit
 
 <div align="center">
 
-# 🔴 Omnidex
+# Omnidex
 
-### The Ultimate AI-Powered Pokemon Assistant
+### AI-Powered Pokemon Assistant
 
-[![Live Demo](https://img.shields.io/badge/🤗%20Live%20Demo-Hugging%20Face-yellow)](https://huggingface.co/spaces/DecryptVoid/Omnidex)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Hugging%20Face-yellow)](https://huggingface.co/spaces/DecryptVoid/Omnidex)
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?logo=github)](https://github.com/DhanushPillay/Omnidex)
 [![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)](https://python.org)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -27,56 +27,51 @@ license: mit
 
 ---
 
-## 📋 Overview
+## Overview
 
-Omnidex is not just a Pokedex; it's a smart assistant capable of understanding complex queries, comparing Pokemon, and even identifying Pokemon from images. By combining traditional ML algorithms (KNN, TF-IDF) with modern Large Language Models (Gemini), Omnidex provides accurate, data-driven answers with a conversational touch.
+Omnidex provides an interface for interacting with Pokemon data through natural language. By combining structured data analysis with Large Language Models, it allows users to query statistics, compare entities, and retrieve information without needing exact keyword matches.
 
-## ✨ Key Features
+## Key Features
 
 | Feature | Description |
 |---------|-------------|
-| 🧠 **Intelligent Querying** | Ask questions naturally (e.g., "Who beats Charizard?", "Strongest fire type?") |
-| 📊 **Deep Analysis** | Get detailed stats, type effectiveness, and competitive insights |
-| ⚔️ **Matchup Engine** | Instant weakness/resistance calculations and side-by-side comparisons |
-| 🧬 **Smart Recommendations** | ML-powered suggestions based on stats and types (K-Nearest Neighbors) |
-| 👁️ **Visual Recognition** | Upload an image to identify any Pokemon using Gemini Vision |
-| �️ **Voice Interaction** | Speak to Omnidex and hear responses (Web Speech API) |
+| **Intelligent Querying** | Understanding of complex natural language queries (e.g., "Who beats Charizard?", "Strongest fire type?") |
+| **Deep Analysis** | Detailed statistics, type effectiveness calculations, and competitive usage insights |
+| **Matchup Engine** | Calculation of weaknesses and resistances with direct side-by-side comparisons |
+| **Smart Recommendations** | Machine Learning-powered suggestions based on statistical similarity (K-Nearest Neighbors) |
+| **Visual Recognition** | Identification of Pokemon from user-uploaded images using computer vision capabilities |
+| **Voice Interaction** | Speech-to-text and text-to-speech support via the Web Speech API |
 
 ---
 
-## � Dependencies & Technology
+## Dependencies & Technology
 
-We use a robust stack of Python libraries to power Omnidex. Here's why each component is essential:
+The system relies on the following Python libraries:
 
 ### Core Framework
-- **`flask`**: A lightweight WSGI web application framework. It serves our web interface and API endpoints.
-- **`gunicorn`**: A production-grade WSGI server used to run the Flask app in deployment environments like Hugging Face Spaces.
-- **`python-dotenv`**: Manages environment variables (like API keys) securely by loading them from a `.env` file.
+- **`flask`**: Serves the web interface and API endpoints.
+- **`gunicorn`**: A production-grade WSGI server for deployment.
+- **`python-dotenv`**: Manages sensitive environment variables.
 
 ### Data Processing & Machine Learning
-- **`pandas`**: The backbone of our data handling. It loads, cleans, and queries the massive `pokemon_data.csv` dataset efficiently.
-- **`numpy`**: Provides support for large, multi-dimensional arrays and matrices, essential for our numerical calculations.
-- **`scikit-learn`**: Powers our recommendation engine (KNN) and intent classification (TF-IDF Vectorizer).
-- **`sentence-transformers`**: Generates semantic embeddings for user queries, allowing the bot to understand *meaning* rather than just matching keywords.
-- **`faiss-cpu`**: A library for efficient similarity search of dense vectors, enabling fast retrieval of relevant context.
+- **`pandas`**: Handles efficient data loading and querying of the dataset.
+- **`numpy`**: Supports numerical operations for stat calculations.
+- **`scikit-learn`**: Implements the K-Nearest Neighbors algorithm for recommendations and TF-IDF for intent classification.
+- **`sentence-transformers`**: Generates semantic embeddings to interpret user query intent.
+- **`faiss-cpu`**: Enables efficient vector search for retrieving relevant context.
 
 ### AI & External APIs
-- **`google-generativeai`**: The official client for Google's Gemini API. This gives Omnidex its conversational personality and vision capabilities.
-- **`duckduckgo-search`**: Allows the bot to search the web for real-time information and lore not present in the static database.
-- **`requests`**: Used for making HTTP requests to fetch external resources like sprite images.
-
-### Multimedia Handling
-- **`Pillow`**: The Python Imaging Library, used for processing and handling uploaded images before analysis.
-- **`SpeechRecognition`**: Enables the backend to process audio data if needed (though primary speech-to-text is handled client-side).
-- **`openpyxl`**: Read/write Excel 2010 xlsx/xlsm files, used if data sources are in Excel format.
+- **`google-generativeai`**: Integrates Google's Gemini API for natural language generation and vision analysis.
+- **`duckduckgo-search`**: Facilitates web search for information not present in the local database.
+- **`requests`**: Handles HTTP requests for external resources.
 
 ---
 
-## 🚀 Quick Start Guide
+## Quick Start Guide
 
 ### Prerequisites
 - Python 3.9 or higher
-- A free [Gemini API Key](https://aistudio.google.com/apikey)
+- A Google Gemini API Key
 
 ### Local Setup
 
@@ -86,7 +81,7 @@ We use a robust stack of Python libraries to power Omnidex. Here's why each comp
    cd Omnidex
    ```
 
-2. **Create a virtual environment (Recommended)**
+2. **Create a virtual environment**
    ```bash
    python -m venv .venv
    
@@ -108,50 +103,62 @@ We use a robust stack of Python libraries to power Omnidex. Here's why each comp
    GEMINI_API_KEY=your_actual_api_key_here
    ```
 
-5. **Launch Omnidex**
+5. **Launch Application**
    ```bash
    python app.py
    ```
-   Open your browser and navigate to `http://localhost:5000`.
+   Navigate to `http://localhost:5000` in your web browser.
 
 ---
 
-## � Project Architecture
+## Project Architecture
 
 ```
 Omnidex/
-├── app.py                  # Main Flask application entry point
-├── requirements.txt        # Python package dependencies
-├── Dockerfile              # Container configuration for deployment
-├── .env                    # Environment variables (not committed)
+├── app.py                  # Main application entry point
+├── requirements.txt        # Package dependencies
+├── Dockerfile              # Deployment configuration
+├── .env                    # Environment variables
 ├── backend/
-│   └── pokemon_chatbot.py  # Core Logic: hybrid ML engine & Gemini integration
+│   └── pokemon_chatbot.py  # Core logic and ML engine
 ├── data/
-│   ├── pokemon_data.csv    # Structured dataset of 800+ Pokemon
-│   └── learned_cache.json  # Persistent cache for web-learned knowledge
+│   ├── pokemon_data.csv    # Structured dataset
+│   └── learned_cache.json  # Search result cache
 └── frontend/
     ├── templates/
-    │   └── index.html      # Responsive Chat Interface
+    │   └── index.html      # User Interface
     └── static/
-        ├── style.css       # Modern CSS variables & animations
-        └── script.js       # Client-side logic, Speech API & WebSocket
+        ├── style.css       # Stylesheets
+        └── script.js       # Client-side logic
 ```
 
 ---
 
-## � Contributing
+## Limitations and Constraints
 
-Contributions are welcome! Whether it's adding new features, improving the ML models, or refining the UI.
+While Omnidex aims to provide accurate responses, users should be aware of the following limitations:
+
+1.  **Dependency on External APIs**: The conversational features and image recognition rely on the Google Gemini API. Service interruptions or rate limits on the API will affect these functionalities.
+2.  **Data Freshness**: The core statistics are derived from a static CSV dataset (`pokemon_data.csv`). New Pokemon generations or balance changes introduced in recent games may not be reflected immediately unless the dataset is manually updated or the web search fallback successfully retrieves the new data.
+3.  **Hallucinations**: As with all Large Language Models, the AI may occasionally generate incorrect or "hallucinated" information, particularly for lore-based questions that are not strictly defined in the structured database.
+4.  **Initial Load Time**: The first startup requires downloading machine learning models (Sentence Transformers), which may take several minutes depending on internet speed.
+5.  **Browser Compatibility**: Voice interaction features rely on the Web Speech API, which has varying levels of support across different web browsers (currently best supported in Chrome and Edge).
+
+---
+
+## Contributing
+
+Contributions are welcome. Please follow standard pull request procedures:
 
 1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
+2. Create your Feature Branch
+3. Commit your Changes
+4. Push to the Branch
 5. Open a Pull Request
 
 ---
 
-## 📄 License
+## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
@@ -159,6 +166,6 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 <div align="center">
 
-**Built with 💻 and ☕ by [DhanushPillay](https://github.com/DhanushPillay)**
+**Developed by [DhanushPillay](https://github.com/DhanushPillay)**
 
 </div>
