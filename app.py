@@ -1,6 +1,10 @@
 import sys
 import os
 import secrets
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add backend folder to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))

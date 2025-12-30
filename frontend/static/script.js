@@ -11,17 +11,17 @@ if ('webkitSpeechRecognition' in window) {
     recognition.interimResults = false;
     recognition.lang = 'en-US';
 
-    recognition.onstart = function() {
+    recognition.onstart = function () {
         isRecording = true;
         document.getElementById('mic-btn').classList.add('recording');
     };
 
-    recognition.onend = function() {
+    recognition.onend = function () {
         isRecording = false;
         document.getElementById('mic-btn').classList.remove('recording');
     };
 
-    recognition.onresult = function(event) {
+    recognition.onresult = function (event) {
         const transcript = event.results[0][0].transcript;
         document.getElementById('user-input').value = transcript;
         sendMessage();
@@ -71,7 +71,7 @@ async function handleImageUpload(input) {
         hideWelcome();
         // Show user uploaded image
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
             addMessage("What is this Pokemon?", 'user', e.target.result);
         };
         reader.readAsDataURL(file);
@@ -99,7 +99,8 @@ async function handleImageUpload(input) {
                     reply += `\n\nI have it in my database! Do you want to know its stats?`;
                 }
                 addMessage(reply, 'bot');
-                speakResponse(`That looks like ${data.name}!`);
+                // Automatic speaking removed based on user feedback
+                // speakResponse(`That looks like ${data.name}!`);
             } else {
                 addMessage("I couldn't identify that Pokemon. Try a clearer image!", 'bot');
             }
@@ -139,7 +140,8 @@ async function sendMessage() {
             // Backend now handles all personality/formatting
             // Only need to display the response
             addMessage(data.response, 'bot', data.image_url, data.evolution_chain, data.comparison_images);
-            speakResponse(data.response);
+            // Automatic speaking removed based on user feedback
+            // speakResponse(data.response);
         } else {
             addMessage('Something went wrong. Please try again.', 'bot');
         }
@@ -227,7 +229,7 @@ function addMessage(text, sender, imageUrl = null, evolutionChain = null, compar
         });
         content.appendChild(evoContainer);
     }
-    // Otherwise show single image if available
+    // Show single image if available
     else if (sender === 'bot' && imageUrl) {
         const imgContainer = document.createElement('div');
         imgContainer.className = 'pokemon-image';
@@ -243,6 +245,30 @@ function addMessage(text, sender, imageUrl = null, evolutionChain = null, compar
     textDiv.className = 'message-text';
     textDiv.textContent = text;
     content.appendChild(textDiv);
+
+    // Add Speak button for bot messages
+    if (sender === 'bot') {
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'message-actions';
+        actionsDiv.style.display = 'flex';
+        actionsDiv.style.justifyContent = 'flex-end';
+        actionsDiv.style.marginTop = '0.25rem';
+
+        const speakBtn = document.createElement('button');
+        speakBtn.className = 'icon-btn';
+        speakBtn.title = 'Read aloud';
+        speakBtn.style.padding = '0.25rem'; // Smaller padding
+        speakBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+        `;
+        speakBtn.onclick = () => speakResponse(text);
+
+        actionsDiv.appendChild(speakBtn);
+        content.appendChild(actionsDiv);
+    }
 
     msg.appendChild(avatar);
     msg.appendChild(content);
