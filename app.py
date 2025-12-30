@@ -19,10 +19,40 @@ app.secret_key = secrets.token_hex(16)
 # Initialize the chatbot with new data path
 chatbot = PokemonChatbot('data/pokemon_data.csv')
 
+# Configure upload folder
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 @app.route('/')
 def home():
     """Render the main chat interface"""
     return render_template('index.html')
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    """Handle image uploads for analysis"""
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    if file:
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(filepath)
+
+        # Analyze image
+        analysis = chatbot.analyze_image(filepath)
+
+        # Clean up
+        try:
+            os.remove(filepath)
+        except:
+            pass
+
+        return jsonify(analysis)
 
 @app.route('/ask', methods=['POST'])
 def ask():
@@ -45,12 +75,20 @@ def ask():
                 'current_topic': None,            
                 'evolution_chain': None           
             }
+
+        # Initialize user profile in session
+        if 'user_profile' not in session:
+            session['user_profile'] = {
+                'name': None,
+                'fav_pokemon': None
+            }
         
         # Get context from session
         context = session['context']
+        user_profile = session['user_profile']
 
-        # Get response from chatbot, passing context
-        response = chatbot.answer_question(question, context)
+        # Get response from chatbot, passing context and user profile
+        response = chatbot.answer_question(question, context, user_profile)
         
         # Try to extract Pokemon name and get rich context
         image_url = None
@@ -129,6 +167,7 @@ def ask():
         
         # Save context back to session
         session['context'] = context
+        session['user_profile'] = user_profile
         session.modified = True
 
         return jsonify({

@@ -10,6 +10,9 @@ import json
 import requests
 from duckduckgo_search import DDGS
 import google.generativeai as genai
+import faiss
+from PIL import Image
+import io
 
 # Try to import sentence-transformers for better NLP
 USE_SEMANTIC_NLP = False
@@ -104,6 +107,11 @@ class PokemonChatbot:
         self._init_recommendation_system()
         self._init_semantic_model()  # New: Semantic understanding
         
+        # Initialize Vector DB for RAG
+        self.faiss_index = None
+        self.pokemon_metadata = []
+        self._build_vector_db()
+
         # Initialize Gemini model
         self.gemini_model = None
         if GEMINI_API_KEY:
@@ -357,19 +365,53 @@ class PokemonChatbot:
             self.intent_vectors = self.intent_vectorizer.fit_transform(self.intent_texts)
     
     def _init_recommendation_system(self):
-        """Initialize K-Nearest Neighbors for Pokemon recommendations"""
-        # Use stats for finding similar Pokemon
+        """Initialize K-Nearest Neighbors for Pokemon recommendations with Hybrid Features"""
+        # 1. Stats Features (normalized)
         stat_columns = ['HP', 'Attack', 'Defense', 'Speed']
-        self.stat_features = self.df[stat_columns].values
+        stat_features = self.df[stat_columns].values
+        stat_mean = stat_features.mean(axis=0)
+        stat_std = stat_features.std(axis=0)
+        normalized_stats = (stat_features - stat_mean) / stat_std
+
+        # 2. Type Features (One-Hot Encoding)
+        # Get all unique types
+        all_types = sorted(list(self.TYPE_CHART.keys()))
+        type_features = []
+
+        for _, row in self.df.iterrows():
+            # Create binary vector for types [0, 1, 0, ...]
+            t_vec = [0] * len(all_types)
+            if row['Type1'] in all_types:
+                t_vec[all_types.index(row['Type1'])] = 1
+            if row['Type2'] in all_types:
+                t_vec[all_types.index(row['Type2'])] = 1
+            type_features.append(t_vec)
+
+        type_features = np.array(type_features)
         
-        # Normalize features for better KNN performance
-        self.stat_mean = self.stat_features.mean(axis=0)
-        self.stat_std = self.stat_features.std(axis=0)
-        self.normalized_features = (self.stat_features - self.stat_mean) / self.stat_std
+        # 3. Generation Feature (Normalized)
+        gen_features = self.df['Generation'].values.reshape(-1, 1)
+        gen_max = gen_features.max()
+        normalized_gen = gen_features / gen_max
+
+        # 4. Legendary Feature (Binary)
+        legendary_features = self.df['Legendary'].astype(int).values.reshape(-1, 1)
+
+        # Combine all features
+        # We weight them: Stats (1.0), Types (1.5), Gen (0.5), Legendary (1.0)
+        self.combined_features = np.hstack([
+            normalized_stats * 1.0,
+            type_features * 1.5,     # Give more weight to Type similarity
+            normalized_gen * 0.5,
+            legendary_features * 1.0
+        ])
         
         # Create KNN model
         self.knn_model = NearestNeighbors(n_neighbors=6, metric='euclidean')
-        self.knn_model.fit(self.normalized_features)
+        self.knn_model.fit(self.combined_features)
+
+        # Store for later use
+        self.normalized_features = self.combined_features
     
     def _init_semantic_model(self):
         """Initialize semantic model for advanced understanding"""
@@ -386,6 +428,84 @@ class PokemonChatbot:
                 self.pokemon_embeddings = None
         else:
             self.pokemon_embeddings = None
+
+    def _build_vector_db(self):
+        """Build FAISS vector database from Pokemon data for RAG"""
+        try:
+            if not getattr(self, 'use_semantic', False) or not hasattr(self, 'semantic_model'):
+                print("⚠️ Semantic model not available. Skipping Vector DB build.")
+                return
+
+            print("🏗️ Building Vector Database...")
+            self.pokemon_metadata = []
+            descriptions = []
+
+            for _, row in self.df.iterrows():
+                # Create a rich textual description
+                type_str = row['Type1']
+                if row['Type2']:
+                    type_str += f" and {row['Type2']}"
+
+                legendary = "Legendary" if row['Legendary'] else ""
+
+                desc = f"{row['Name']} is a {type_str} type Pokemon from Generation {row['Generation']}. "
+                desc += f"It has {row['HP']} HP, {row['Attack']} Attack, {row['Defense']} Defense, and {row['Speed']} Speed. "
+                if legendary:
+                    desc += f"It is a Legendary Pokemon. "
+
+                # Add weaknesses/strengths context
+                if row['Type1'] in self.TYPE_CHART:
+                    weak = self.TYPE_CHART[row['Type1']]['weak']
+                    strong = self.TYPE_CHART[row['Type1']]['strong']
+                    desc += f"It is weak against {', '.join(weak)} and strong against {', '.join(strong)}. "
+
+                descriptions.append(desc)
+                self.pokemon_metadata.append({
+                    'name': row['Name'],
+                    'description': desc,
+                    'type': type_str,
+                    'stats': {k: row[k] for k in ['HP', 'Attack', 'Defense', 'Speed']}
+                })
+
+            # Encode all descriptions
+            embeddings = self.semantic_model.encode(descriptions)
+
+            # Initialize FAISS index
+            dimension = embeddings.shape[1]
+            self.faiss_index = faiss.IndexFlatL2(dimension)
+            self.faiss_index.add(np.array(embeddings).astype('float32'))
+
+            print(f"✅ Vector Database built with {len(descriptions)} entries!")
+
+        except Exception as e:
+            print(f"❌ Failed to build Vector DB: {e}")
+
+    def _vector_search(self, query, k=3):
+        """Search the vector database for relevant Pokemon context"""
+        if not self.faiss_index or not hasattr(self, 'semantic_model'):
+            return []
+
+        try:
+            # Encode query
+            query_vector = self.semantic_model.encode([query])
+
+            # Search
+            distances, indices = self.faiss_index.search(np.array(query_vector).astype('float32'), k)
+
+            results = []
+            for i, idx in enumerate(indices[0]):
+                if idx < len(self.pokemon_metadata):
+                    item = self.pokemon_metadata[idx]
+                    results.append({
+                        'name': item['name'],
+                        'description': item['description'],
+                        'score': float(distances[0][i])
+                    })
+
+            return results
+        except Exception as e:
+            print(f"⚠️ Vector search failed: {e}")
+            return []
     
     # ============ CONVERSATION MEMORY METHODS ============
     
@@ -623,7 +743,7 @@ class PokemonChatbot:
         
         return similar, pokemon_match
     
-    def _make_conversational(self, data, user_question, context):
+    def _make_conversational(self, data, user_question, context, user_profile=None):
         """Use Gemini to make a response sound natural and conversational"""
         if not self.gemini_model:
             return data  # Return raw data if no Gemini
@@ -641,6 +761,14 @@ class PokemonChatbot:
                 role = "User" if h['role'] == 'user' else "Omnidex"
                 history_str += f"{role}: {h['content']}\n"
         
+        # User personalization
+        user_context = ""
+        if user_profile:
+            if user_profile.get('name'):
+                user_context += f"User's name is {user_profile['name']}. "
+            if user_profile.get('fav_pokemon'):
+                user_context += f"User's favorite Pokemon is {user_profile['fav_pokemon']}. "
+
         # Topic-specific instructions
         topic_instruction = ""
         if topic == 'battle':
@@ -658,6 +786,8 @@ class PokemonChatbot:
             prompt = f"""You are Omnidex, an expert AI Pokemon Professor.
 Transform this raw data into a natural, conversational response.
 
+USER CONTEXT: {user_context}
+
 RECENT CONVERSATION:
 {history_str}
 
@@ -674,6 +804,7 @@ Instructions:
 - Sound natural, exclude raw JSON formatting
 - If data is a list, weave it into a sentence naturally
 - Reference previous context if relevant
+- If user's name is known, use it occasionally.
 """
 
             response = self.gemini_model.generate_content(prompt)
@@ -682,7 +813,7 @@ Instructions:
             print(f"Gemini error: {e}")
             return data  # Fallback to raw data
             
-    def _answer_general_knowledge(self, question, context):
+    def _answer_general_knowledge(self, question, context, user_profile=None):
         """Use Gemini to answer general Pokemon questions not in CSV"""
         if not self.gemini_model:
             return "I don't have that information in my database."
@@ -697,8 +828,18 @@ Instructions:
                     role = "User" if h['role'] == 'user' else "Omnidex"
                     history_str += f"{role}: {h['content']}\n"
 
+            # User personalization
+            user_context = ""
+            if user_profile:
+                if user_profile.get('name'):
+                    user_context += f"User's name is {user_profile['name']}. "
+                if user_profile.get('fav_pokemon'):
+                    user_context += f"User's favorite Pokemon is {user_profile['fav_pokemon']}. "
+
             prompt = f"""You are Omnidex, an expert AI Pokemon Professor.
 Answer the user's question about Pokemon using your general knowledge.
+
+USER CONTEXT: {user_context}
 
 RECENT CONVERSATION:
 {history_str}
@@ -711,6 +852,7 @@ Instructions:
 - Be friendly, enthusiastic and knowledgeable.
 - Keep it to 2-3 sentences.
 - Use 1-2 emoji.
+- If user's name is known, use it naturally.
 """
             response = self.gemini_model.generate_content(prompt)
             return response.text
@@ -718,18 +860,40 @@ Instructions:
             print(f"Gemini general knowledge error: {e}")
             return "I'm having trouble accessing my Pokemon knowledge base right now."
         
-    def answer_question(self, question, context):
+    def answer_question(self, question, context, user_profile=None):
         """Process natural language questions about Pokemon using ML"""
         original_question = question
         question_lower = question.lower().strip()
-        
+
+        # ============ USER PROFILE EXTRACTION ============
+        # Try to extract user name or favorite pokemon
+        if user_profile is not None:
+            # Extract Name
+            name_match = re.search(r"(?:my name is|i'm|im|call me) ([A-Z][a-z]+)", original_question, re.IGNORECASE)
+            if name_match:
+                name = name_match.group(1)
+                user_profile['name'] = name
+                return f"Nice to meet you, {name}! 👋 I'll remember that. What's your favorite Pokemon?"
+
+            # Extract Favorite Pokemon
+            fav_match = re.search(r"(?:my favorite pokemon is|i love|i like) ([A-Za-z]+)", original_question, re.IGNORECASE)
+            if fav_match:
+                fav_poke = fav_match.group(1)
+                matched = self._fuzzy_find_pokemon(fav_poke)
+                if matched:
+                    user_profile['fav_pokemon'] = matched
+                    return f"Awesome! {matched} is a great choice! I've noted that down as your favorite."
+
         # Handle greetings and general conversation with Gemini
         greetings = ['hi', 'hello', 'hey', 'heyy', 'yo', 'sup', 'what\'s up', 'howdy', 'greetings']
         if any(question_lower.startswith(g) for g in greetings) or len(question_lower) < 5:
             if self.gemini_model:
                 try:
+                    # Personalize greeting if name is known
+                    greeting_name = f" {user_profile['name']}" if user_profile and user_profile.get('name') else ""
+
                     prompt = f"""You are PokéBot, a friendly and enthusiastic Pokemon expert chatbot.
-The user just said: "{original_question}"
+The user{greeting_name} just said: "{original_question}"
 
 Respond naturally and warmly! Introduce yourself as PokéBot and invite them to ask you anything about Pokemon - 
 stats, lore, comparisons, evolutions, stories, etc. Also mention you can recommend similar Pokemon! 
@@ -771,7 +935,7 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             for ptype in pokemon_types:
                 if ptype.lower() in question_lower:
                     data = self._get_pokemon_by_type(ptype)
-                    return self._make_conversational(data, original_question, context)
+                    return self._make_conversational(data, original_question, context, user_profile)
         
         elif intent == "pokemon_info":
             # Extract Pokemon name using fuzzy matching
@@ -780,11 +944,11 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                 result = self._get_pokemon_info(pokemon_name)
                 if result:
                     context['last_pokemon'] = pokemon_name
-                    return self._make_conversational(result, original_question, context)
+                    return self._make_conversational(result, original_question, context, user_profile)
         
         elif intent == "count_legendary":
             data = self._count_legendary()
-            return self._make_conversational(data, original_question, context)
+            return self._make_conversational(data, original_question, context, user_profile)
         
         elif intent == "count_type":
             pokemon_types = ['Fire', 'Water', 'Grass', 'Electric', 'Psychic', 'Dragon', 
@@ -793,10 +957,10 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             for ptype in pokemon_types:
                 if ptype.lower() in question_lower:
                     data = self._count_type(ptype)
-                    return self._make_conversational(data, original_question, context)
+                    return self._make_conversational(data, original_question, context, user_profile)
         
         elif intent == "count_total":
-            return self._make_conversational(f"There are {len(self.df)} Pokemon in the database.", original_question, context)
+            return self._make_conversational(f"There are {len(self.df)} Pokemon in the database.", original_question, context, user_profile)
         
         elif intent == "stat_leader":
             if 'attack' in question_lower:
@@ -809,22 +973,22 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                 data = self._get_stat_leader('HP', 'highest')
             else:
                 data = self._get_stat_leader('Attack', 'highest')
-            return self._make_conversational(data, original_question, context)
+            return self._make_conversational(data, original_question, context, user_profile)
         
         elif intent == "strongest_overall":
             data = self._get_strongest_overall()
-            return self._make_conversational(data, original_question, context)
+            return self._make_conversational(data, original_question, context, user_profile)
         
         elif intent == "list_legendary":
             data = self._get_legendary_pokemon()
-            return self._make_conversational(data, original_question, context)
+            return self._make_conversational(data, original_question, context, user_profile)
         
         elif intent == "generation_query":
             gen_match = re.search(r'gen(?:eration)?\s*(\d+)', question_lower)
             if gen_match:
                 gen = int(gen_match.group(1))
                 data = self._get_pokemon_by_generation(gen)
-                return self._make_conversational(data, original_question, context)
+                return self._make_conversational(data, original_question, context, user_profile)
         
         elif intent == "compare":
             # Extract two Pokemon names for comparison
@@ -834,11 +998,11 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                 # Set context to the first Pokemon for follow-up questions
                 context['last_pokemon'] = pokemon_names[0]
                 context['compared_pokemon'] = pokemon_names  # Store both
-                return self._make_conversational(data, original_question, context)
+                return self._make_conversational(data, original_question, context, user_profile)
         
         elif intent == "dual_type":
             data = self._get_dual_type_pokemon()
-            return self._make_conversational(data, original_question, context)
+            return self._make_conversational(data, original_question, context, user_profile)
         
         elif intent == "recommend":
             # Extract Pokemon name for recommendations
@@ -849,7 +1013,7 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                     data = f"Pokemon similar to {matched_name}:\n"
                     for s in similar:
                         data += f"• {s['name']} ({s['type']}) - {s['similarity']}% similar\n"
-                    return self._make_conversational(data, original_question, context)
+                    return self._make_conversational(data, original_question, context, user_profile)
         
         # ============ NEW: WEAKNESS QUERIES ============
         elif intent == "weakness":
@@ -858,12 +1022,12 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             if pokemon_name:
                 data = self._get_pokemon_weakness(pokemon_name)
                 context['last_pokemon'] = pokemon_name
-                return self._make_conversational(data, original_question, context)
+                return self._make_conversational(data, original_question, context, user_profile)
             # Otherwise check for type name
             for ptype in self.TYPE_CHART.keys():
                 if ptype.lower() in question_lower:
                     data = self._get_type_weakness(ptype)
-                    return self._make_conversational(data, original_question, context)
+                    return self._make_conversational(data, original_question, context, user_profile)
         
         # ============ NEW: STRENGTH QUERIES ============
         elif intent == "strength":
@@ -871,11 +1035,11 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             if pokemon_name:
                 data = self._get_pokemon_strength(pokemon_name)
                 context['last_pokemon'] = pokemon_name
-                return self._make_conversational(data, original_question, context)
+                return self._make_conversational(data, original_question, context, user_profile)
             for ptype in self.TYPE_CHART.keys():
                 if ptype.lower() in question_lower:
                     data = self._get_type_strength(ptype)
-                    return self._make_conversational(data, original_question, context)
+                    return self._make_conversational(data, original_question, context, user_profile)
         
         # ============ NEW: EVOLUTION QUERIES ============
         elif intent == "evolution":
@@ -883,7 +1047,7 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             if pokemon_name:
                 data = self._get_evolution_info(pokemon_name, context)
                 context['last_pokemon'] = pokemon_name
-                return self._make_conversational(data, original_question, context)
+                return self._make_conversational(data, original_question, context, user_profile)
         
         # ============ NEW: CONTEXT-AWARE QUERIES ============
         elif intent and intent.startswith("context_"):
@@ -905,32 +1069,32 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                         data = f"{last_pokemon}'s HP is {pokemon['HP']}."
                     else:
                         data = self._get_pokemon_info(last_pokemon)
-                    return self._make_conversational(data, original_question, context)
+                    return self._make_conversational(data, original_question, context, user_profile)
                 elif intent == "context_type":
                     pokemon = self.df[self.df['Name'] == last_pokemon].iloc[0]
                     type_str = pokemon['Type1']
                     if pokemon['Type2']:
                         type_str += f" and {pokemon['Type2']}"
                     data = f"{last_pokemon} is a {type_str} type Pokemon."
-                    return self._make_conversational(data, original_question, context)
+                    return self._make_conversational(data, original_question, context, user_profile)
                 elif intent == "context_legendary":
                     pokemon = self.df[self.df['Name'] == last_pokemon].iloc[0]
                     is_legendary = "Yes, it is!" if pokemon['Legendary'] else "No, it's not."
                     data = f"Is {last_pokemon} legendary? {is_legendary}"
-                    return self._make_conversational(data, original_question, context)
+                    return self._make_conversational(data, original_question, context, user_profile)
                 elif intent == "context_weakness":
                     data = self._get_pokemon_weakness(last_pokemon)
-                    return self._make_conversational(data, original_question, context)
+                    return self._make_conversational(data, original_question, context, user_profile)
                 elif intent == "context_evolution":
                     data = self._get_evolution_info(last_pokemon, context)
-                    return self._make_conversational(data, original_question, context)
+                    return self._make_conversational(data, original_question, context, user_profile)
                 elif intent == "context_recommend":
                     similar, matched_name = self._get_similar_pokemon(last_pokemon)
                     if similar:
                         data = f"Pokemon similar to {matched_name}:\n"
                         for s in similar:
                             data += f"• {s['name']} ({s['type']}) - {s['similarity']}% similar\n"
-                        return self._make_conversational(data, original_question, context)
+                        return self._make_conversational(data, original_question, context, user_profile)
                 elif intent == "context_story":
                     # Search for the last Pokemon's story/lore
                     return self._search_web(f"{last_pokemon} Pokemon lore backstory origin")
@@ -943,10 +1107,66 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             context['last_pokemon'] = pokemon_name
             result = self._get_pokemon_info(pokemon_name)
             if result:
-                return self._make_conversational(result, original_question, context)
+                return self._make_conversational(result, original_question, context, user_profile)
         
         # Final fallback: Use Gemini for general knowledge
-        return self._answer_general_knowledge(original_question, context)
+        return self._answer_general_knowledge(original_question, context, user_profile)
+
+    def analyze_image(self, image_path):
+        """Analyze an uploaded image to identify a Pokemon using Gemini Vision"""
+        if not self.gemini_model:
+            return {"error": "AI Vision not enabled (missing API key)"}
+
+        try:
+            print(f"👁️ Analyzing image: {image_path}")
+
+            # Load image
+            img = Image.open(image_path)
+
+            # Use Gemini Pro Vision (or compatible model)
+            vision_model = genai.GenerativeModel('gemini-1.5-flash')
+
+            prompt = """Identify the Pokemon in this image.
+            Return a valid JSON object with:
+            {
+                "name": "Pokemon Name",
+                "confidence": "High/Medium/Low",
+                "description": "Brief visual description",
+                "is_shiny": true/false
+            }
+            Do not include Markdown formatting like ```json. Just return the raw JSON string."""
+
+            response = vision_model.generate_content([prompt, img])
+            text = response.text.strip()
+
+            # Clean up potential markdown formatting
+            if text.startswith('```json'):
+                text = text.replace('```json', '').replace('```', '')
+
+            # Parse JSON
+            try:
+                data = json.loads(text)
+            except:
+                # Fallback if not valid JSON
+                data = {
+                    "name": "Unknown",
+                    "confidence": "Low",
+                    "description": text,
+                    "is_shiny": False
+                }
+
+            # If we found a name, try to match it to our database
+            if data.get('name'):
+                matched = self._fuzzy_find_pokemon(data['name'])
+                if matched:
+                    data['name'] = matched
+                    data['db_match'] = True
+
+            return data
+
+        except Exception as e:
+            print(f"❌ Image analysis failed: {e}")
+            return {"error": f"Failed to analyze image: {str(e)}"}
     
     def _extract_pokemon_name(self, text):
         """Extract a Pokemon name from text using fuzzy matching"""

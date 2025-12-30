@@ -1,5 +1,117 @@
 // Conversation history for multi-turn context
 let conversationHistory = [];
+let recognition = null;
+let isRecording = false;
+let synth = window.speechSynthesis;
+
+// Initialize Speech Recognition
+if ('webkitSpeechRecognition' in window) {
+    recognition = new webkitSpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = function() {
+        isRecording = true;
+        document.getElementById('mic-btn').classList.add('recording');
+    };
+
+    recognition.onend = function() {
+        isRecording = false;
+        document.getElementById('mic-btn').classList.remove('recording');
+    };
+
+    recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById('user-input').value = transcript;
+        sendMessage();
+    };
+} else {
+    console.log("Speech Recognition not supported in this browser.");
+    document.getElementById('mic-btn').style.display = 'none';
+}
+
+// Toggle Recording
+function toggleRecording() {
+    if (!recognition) return;
+
+    if (isRecording) {
+        recognition.stop();
+    } else {
+        recognition.start();
+    }
+}
+
+// Speak text using TTS
+function speakResponse(text) {
+    if (synth.speaking) {
+        synth.cancel();
+    }
+
+    // Clean text (remove emoji and markdown-like chars for better reading)
+    const cleanText = text.replace(/[*#]/g, '').replace(/[\u{1F600}-\u{1F64F}]/gu, '');
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    // Try to find a good English voice
+    const voices = synth.getVoices();
+    const preferredVoice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Samantha'));
+    if (preferredVoice) utterance.voice = preferredVoice;
+
+    synth.speak(utterance);
+}
+
+// Handle Image Upload
+async function handleImageUpload(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+
+        hideWelcome();
+        // Show user uploaded image
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            addMessage("What is this Pokemon?", 'user', e.target.result);
+        };
+        reader.readAsDataURL(file);
+
+        showTyping();
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            hideTyping();
+
+            if (data.error) {
+                addMessage(`Error: ${data.error}`, 'bot');
+            } else if (data.name) {
+                let reply = `That looks like **${data.name}**! `;
+                reply += `\n${data.description}`;
+                if (data.db_match) {
+                    reply += `\n\nI have it in my database! Do you want to know its stats?`;
+                }
+                addMessage(reply, 'bot');
+                speakResponse(`That looks like ${data.name}!`);
+            } else {
+                addMessage("I couldn't identify that Pokemon. Try a clearer image!", 'bot');
+            }
+        } catch (error) {
+            hideTyping();
+            addMessage('Error uploading image.', 'bot');
+        }
+
+        // Reset input
+        input.value = '';
+    }
+}
 
 // Send message on button click
 async function sendMessage() {
@@ -27,6 +139,7 @@ async function sendMessage() {
             // Backend now handles all personality/formatting
             // Only need to display the response
             addMessage(data.response, 'bot', data.image_url, data.evolution_chain, data.comparison_images);
+            speakResponse(data.response);
         } else {
             addMessage('Something went wrong. Please try again.', 'bot');
         }
