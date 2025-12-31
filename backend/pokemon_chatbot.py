@@ -116,7 +116,7 @@ class PokemonChatbot:
         self.gemini_model = None
         if GEMINI_API_KEY:
             try:
-                self.gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+                self.gemini_model = genai.GenerativeModel('gemini-flash-latest')
                 print("✅ Gemini AI enabled for conversational responses!")
             except Exception as e:
                 print(f"⚠️ Gemini initialization failed: {e}")
@@ -1124,7 +1124,7 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             img = Image.open(image_path)
 
             # Use Gemini Pro Vision (or compatible model)
-            vision_model = genai.GenerativeModel('gemini-1.5-flash')
+            vision_model = genai.GenerativeModel('gemini-flash-latest')
 
             prompt = """Identify the Pokemon in this image.
             Return a valid JSON object with:
