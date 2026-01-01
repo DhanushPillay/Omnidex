@@ -806,7 +806,7 @@ Instructions:
 """
 
             response = self.gemini_client.models.generate_content(
-                model='gemini-2.0-flash',
+                model='gemini-1.5-flash',
                 contents=prompt
             )
             result = response.text
@@ -905,7 +905,7 @@ Respond naturally and warmly! Introduce yourself as PokéBot and invite them to 
 stats, lore, comparisons, evolutions, stories, etc. Also mention you can recommend similar Pokemon! 
 Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                     response = self.gemini_client.models.generate_content(
-                        model='gemini-2.0-flash',
+                        model='gemini-1.5-flash',
                         contents=prompt
                     )
                     return response.text
@@ -1177,7 +1177,7 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             Do not include Markdown formatting like ```json. Just return the raw JSON string."""
 
             response = self.gemini_client.models.generate_content(
-                model='gemini-2.0-flash',
+                model='gemini-1.5-flash',
                 contents=[prompt, img]
             )
             text = response.text.strip()
@@ -1396,7 +1396,7 @@ Using this cached information:
 Tell a detailed and engaging story/answer. Do NOT be brief.
 If it's about lore, be dramatic and immersive."""
                         response = self.gemini_client.models.generate_content(
-                            model='gemini-2.0-flash',
+                            model='gemini-1.5-flash',
                             contents=prompt
                         )
                         return response.text
@@ -1446,11 +1446,16 @@ If it's about lore, be dramatic and immersive."""
                 if is_lore_query:
                     print("⚠️ Wiki search failed, trying broad search...")
                     with DDGS() as ddgs:
-                        # Fallback: search for lore specifically but without site restrictions
-                        results = list(ddgs.text(f"Pokemon {query} lore -pokemmo -guide", max_results=5))
+                        # Fallback: search for lore specifically
+                        raw_results = list(ddgs.text(f"Pokemon {query} lore", max_results=8))
+                        # Manual filtering
+                        results = [r for r in raw_results if "pokemmo" not in r['title'].lower() and "pokemmo" not in r['body'].lower()]
             
             if not results:
                 return "I couldn't find any information about that. Try asking about specific Pokemon stats or types!"
+
+            # Filter out any lingering PokeMMO results if coming from main search
+            results = [r for r in results if "pokemmo" not in r['title'].lower() and "pokemmo" not in r['body'].lower()]
             
             # 4. Store this for future reference (self-learning!)
             self._learn_from_web(query, [{'title': r.get('title', ''), 'body': r.get('body', '')} for r in results])
@@ -1488,7 +1493,7 @@ Info found:
 Answer conversationally and helpfully. Keep it to 3-4 sentences."""
 
                     response = self.gemini_client.models.generate_content(
-                        model='gemini-2.0-flash',
+                        model='gemini-1.5-flash',
                         contents=prompt
                     )
                     return response.text
