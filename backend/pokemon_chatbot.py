@@ -809,14 +809,16 @@ Instructions:
                 model='gemini-2.0-flash',
                 contents=prompt
             )
-            return response.text
+            result = response.text
+            print(f"✅ Conversational response generated successfully!")
+            return result
         except Exception as e:
-            print(f"Gemini error: {e}")
+            print(f"❌ Gemini conversational error: {e}")
             return data  # Fallback to raw data
             
     def _answer_general_knowledge(self, question, context, user_profile=None):
         """Use Gemini to answer general Pokemon questions not in CSV"""
-        if not self.gemini_model:
+        if not getattr(self, 'gemini_client', None):
             return "I don't have that information in my database."
             
         try:
