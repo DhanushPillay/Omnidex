@@ -1446,7 +1446,8 @@ If it's about lore, be dramatic and immersive."""
                 if is_lore_query:
                     print("⚠️ Wiki search failed, trying broad search...")
                     with DDGS() as ddgs:
-                        results = list(ddgs.text(f"Pokemon {query}", max_results=5))
+                        # Fallback: search for lore specifically but without site restrictions
+                        results = list(ddgs.text(f"Pokemon {query} lore -pokemmo -guide", max_results=5))
             
             if not results:
                 return "I couldn't find any information about that. Try asking about specific Pokemon stats or types!"
@@ -1832,8 +1833,17 @@ def main():
     """Main function to run the Pokemon chatbot"""
     print("🔥 Pokemon Chatbot Starting...\n")
     
-    # Initialize chatbot
-    chatbot = PokemonChatbot('pokemon_data.csv')
+    # Initializdef main():
+    # Check if data exists in 'data' folder or current directory
+    csv_path = 'data/pokemon_data.csv'
+    if not os.path.exists(csv_path):
+        csv_path = 'pokemon_data.csv'
+    
+    if os.path.exists(csv_path):
+        chatbot = PokemonChatbot(csv_path)
+    else:
+        print("❌ Error: pokemon_data.csv not found in 'data/' or current directory.")
+        return
     
     print("\n" + "="*60)
     print("Welcome to the ML-Powered Pokemon Chatbot!")
