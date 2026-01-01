@@ -1478,11 +1478,16 @@ I have gathered these snippets from the web:
 
 YOUR TASK:
 Weave these snippets into a COMPLETE, ENGAGING, and DETAILED narrative.
-- Do NOT be brief. Write at least 2-3 paragraphs.
-- Focus on myths, pokedex entries, and anime history found in the text.
+
+RULES:
+- Do NOT return links, article titles, or timestamps.
+- Do NOT dump search results or bullet points.
+- Ignore game mechanics (raids, IVs, builds, stats) and non-canonical guides.
+- Prioritize canonical lore from games, anime, and Pokedex entries.
+- Treat Pokemon as a fictional universe.
 - Be dramatic and immersive, like a true storyteller.
-- Ignore game mechanics (stats, moves) unless relevant to the lore.
-- If the snippets are messy, synthesize specific details into a coherent story."""
+- Synthesize the information into a single, cohesive story (at least 2 paragraphs).
+- If information is missing, focus on what is known about the Pokemon's myths or origins."""
                     else:
                          prompt = f"""You are Omnidex, a friendly Pokemon expert.
 User's question: {query}
