@@ -774,7 +774,7 @@ class PokemonChatbot:
         if topic == 'battle':
             topic_instruction = "- Focus on battle strategy, type matchups, and competitive viability. Sound like a Gym Leader!"
         elif topic == 'lore':
-            topic_instruction = "- Speak like a storyteller sharing myths and legends. Be mysterious and intriguing."
+            topic_instruction = "- Speak like a storyteller sharing myths and legends. Be mysterious and intriguing. Do NOT be brief - tell the full story."
         elif topic == 'evolution':
             topic_instruction = "- Express excitement about growth, metamorphosis, and potential. Sound like a Pokemon Professor!"
         elif topic == 'stats':
@@ -799,8 +799,7 @@ Data to transform:
 
 Instructions:
 {topic_instruction}
-- Keep it concise (2-4 sentences max)
-- Use 1-2 relevant emoji
+- Use relevant emoji to set the mood
 - Sound natural, exclude raw JSON formatting
 - If data is a list, weave it into a sentence naturally
 - Reference previous context if relevant
@@ -918,6 +917,14 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
         
         # Use ML to classify intent
         intent, confidence = self._classify_intent(question_lower)
+        
+        # OVERRIDE: Check for Story/Lore requests specifically
+        # ML classifiers often confuse "story of mewtwo" with "info about mewtwo"
+        story_keywords = ['story', 'lore', 'legend', 'history', 'origin', 'myth', 'tale', 'background']
+        if any(word in question_lower for word in story_keywords):
+            intent = "pokemon_lore"
+            print(f"📖 Intent overridden to: pokemon_lore (keyword detected)")
+
         print(f"🤖 ML Intent: {intent} (confidence: {confidence:.2f})")
         
         # Save intent to context
@@ -937,6 +944,29 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                     data = self._get_pokemon_by_type(ptype)
                     return self._make_conversational(data, original_question, context, user_profile)
         
+        elif intent == "pokemon_lore":
+            # Handle Story/Lore requests with Web Search
+            pokemon_name = self._extract_pokemon_name(question_lower)
+            if not pokemon_name and context.get('last_pokemon'):
+                pokemon_name = context['last_pokemon']
+                
+            if pokemon_name:
+                context['last_pokemon'] = pokemon_name
+                context['current_topic'] = 'lore'
+                
+                # 1. First try to get web data for rich storytelling
+                search_query = f"story legend lore history of {pokemon_name} pokemon"
+                print(f"🔍 Searching web for lore: {search_query}")
+                web_data = self._search_web(search_query)
+                
+                if web_data:
+                    return self._make_conversational(web_data, original_question, context, user_profile)
+                else:
+                    # Fallback to internal knowledge if search fails
+                    return self._make_conversational(f"Tell me the story of {pokemon_name}", original_question, context, user_profile)
+            else:
+                return "I'd love to tell you a story! Which Pokemon are you interested in?"
+
         elif intent == "pokemon_info":
             # Extract Pokemon name using fuzzy matching
             pokemon_name = self._extract_pokemon_name(question_lower)
@@ -1335,7 +1365,7 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
         return result
     
     def _search_web(self, query):
-        """Search the web with self-learning capabilities"""
+        """Search the web with self-learning capabilities - Optimized for Lore/Stories"""
         try:
             # 1. First check if we've learned this before
             cached = self._check_learned_cache(query)
@@ -1344,10 +1374,14 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
                 context = "\n".join([f"- {r.get('title', '')}: {r.get('body', '')}" for r in cached.get('results', [])])
                 if self.gemini_model:
                     try:
-                        prompt = f"""You are PokéBot. Answer this question naturally using this cached info:
+                        prompt = f"""You are Omnidex, an expert Pokemon Storyteller.
 User asked: {query}
-Info: {context}
-Keep it brief and friendly with 1-2 emoji."""
+
+Using this cached information:
+{context}
+
+Tell a detailed and engaging story/answer. Do NOT be brief.
+If it's about lore, be dramatic and immersive."""
                         response = self.gemini_model.generate_content(prompt)
                         return response.text
                     except:
@@ -1355,14 +1389,15 @@ Keep it brief and friendly with 1-2 emoji."""
             
             # 2. Try to extract a Pokemon name and check PokeAPI
             potential_pokemon = self._extract_pokemon_name(query.lower())
+            # (Keeping existing PokeAPI check logic...)
             if potential_pokemon is None:
-                # Maybe it's an unknown Pokemon - try words in the query
+                 # Maybe it's an unknown Pokemon - try words in the query
                 words = query.lower().split()
                 for word in words:
                     if len(word) > 3 and word not in ['what', 'about', 'tell', 'story', 'lore', 'pokemon']:
                         pokemon_info, is_new = self._fetch_from_pokeapi(word)
                         if pokemon_info:
-                            if is_new:
+                             if is_new:
                                 result = f"🆕 I just learned about {pokemon_info['name']}!\n\n"
                                 result += f"📊 {pokemon_info['name']} Info:\n"
                                 result += f"Type: {pokemon_info['type1']}"
@@ -1372,13 +1407,30 @@ Keep it brief and friendly with 1-2 emoji."""
                                 result += f"Generation: {pokemon_info['generation']}\n"
                                 result += f"\n✅ Added to my database! I'll remember this Pokemon from now on."
                                 return self._make_conversational(result, query) if self.gemini_model else result
-                            break
+                             break
+
+            # 3. Search the web for story/lore questions - UPDATED LOGIC
+            is_lore_query = any(w in query.lower() for w in ['story', 'lore', 'legend', 'history', 'origin', 'myth'])
             
-            # 3. Search the web for story/lore questions
-            search_query = f"Pokemon {query}"
+            if is_lore_query:
+                # Target high-quality lore sources
+                search_query = f"{query} site:bulbapedia.bulbagarden.net OR site:serebii.net OR site:pokemon.fandom.com"
+                max_res = 8  # Get more context for stories
+            else:
+                search_query = f"Pokemon {query}"
+                max_res = 5
+
+            print(f"🔍 Searching web: {search_query}")
             
             with DDGS() as ddgs:
-                results = list(ddgs.text(search_query, max_results=5))
+                results = list(ddgs.text(search_query, max_results=max_res))
+            
+            if not results:
+                # Fallback to broader search if Wiki search fails
+                if is_lore_query:
+                    print("⚠️ Wiki search failed, trying broad search...")
+                    with DDGS() as ddgs:
+                        results = list(ddgs.text(f"Pokemon {query}", max_results=5))
             
             if not results:
                 return "I couldn't find any information about that. Try asking about specific Pokemon stats or types!"
@@ -1395,21 +1447,28 @@ Keep it brief and friendly with 1-2 emoji."""
             # If Gemini is available, generate a natural response
             if self.gemini_model:
                 try:
-                    prompt = f"""You are PokéBot, a friendly and knowledgeable Pokemon expert assistant. 
-Answer the user's question in a natural, conversational way like ChatGPT or Gemini would.
-Be helpful, engaging, and show enthusiasm about Pokemon!
+                    if is_lore_query:
+                        prompt = f"""You are Omnidex, the ultimate Pokemon Storyteller.
+The user wants to know the LORE/STORY about: {query}
 
-User's question: {query}
-
-Here's some information I found to help you answer:
+I have gathered these snippets from the web:
 {context}
 
-Instructions:
-- Give a direct, helpful answer in 2-4 sentences
-- Be conversational and friendly
-- Use emoji sparingly (1-2 max)
-- If the info doesn't fully answer the question, do your best with what you have
-- Don't mention that you searched the web or used external sources"""
+YOUR TASK:
+Weave these snippets into a COMPLETE, ENGAGING, and DETAILED narrative.
+- Do NOT be brief. Write at least 2-3 paragraphs.
+- Focus on myths, pokedex entries, and anime history found in the text.
+- Be dramatic and immersive, like a true storyteller.
+- Ignore game mechanics (stats, moves) unless relevant to the lore.
+- If the snippets are messy, synthesize specific details into a coherent story."""
+                    else:
+                         prompt = f"""You are Omnidex, a friendly Pokemon expert.
+User's question: {query}
+
+Info found:
+{context}
+
+Answer conversationally and helpfully. Keep it to 3-4 sentences."""
 
                     response = self.gemini_model.generate_content(prompt)
                     return response.text
@@ -1426,6 +1485,7 @@ Instructions:
             return response
             
         except Exception as e:
+            print(f"Search error: {e}")
             return f"I had trouble searching for that. Try asking about Pokemon stats instead!"
     
     def _get_type_weakness(self, pokemon_type):
