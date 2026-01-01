@@ -9,10 +9,16 @@ import os
 import json
 import requests
 from duckduckgo_search import DDGS
-from google import genai
+# import google.generativeai as genai # REMOVED
 import faiss
 from PIL import Image
 import io
+from dotenv import load_dotenv
+from openai import OpenAI
+import base64
+
+# Load environment variables
+load_dotenv()
 
 # Try to import sentence-transformers for better NLP
 USE_SEMANTIC_NLP = False
@@ -24,8 +30,8 @@ except ImportError:
 
 # Configure Gemini API - uses free tier
 # IMPORTANT: Set GEMINI_API_KEY environment variable for security
-# GEMINI_API_KEY is handled by the client initialization below
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+# OpenAI API Key handling
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 
 
 class PokemonChatbot:
@@ -112,16 +118,16 @@ class PokemonChatbot:
         self._build_vector_db()
 
         # Initialize Gemini model
-        self.gemini_model = None
-        if GEMINI_API_KEY:
+        # Initialize OpenAI client
+        self.openai_client = None
+        if OPENAI_API_KEY:
             try:
-                self.gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-                print("✅ Gemini AI enabled for conversational responses!")
+                self.openai_client = OpenAI(api_key=OPENAI_API_KEY)
+                print("✅ OpenAI (GPT-4o) enabled for conversational responses!")
             except Exception as e:
-                print(f"⚠️ Gemini initialization failed: {e}")
+                print(f"⚠️ OpenAI initialization failed: {e}")
         else:
-            print("⚠️ No GEMINI_API_KEY found. Set it for AI-powered responses.")
-            print("   Get a free key at: https://makersuite.google.com/app/apikey")
+            print("⚠️ No OPENAI_API_KEY found. Set it in .env for AI-powered responses.")
         
         print(f"✅ Loaded {len(self.df)} Pokemon from database!")
         print(f"✅ ML Intent Classifier trained with {len(self.intent_examples)} examples")
@@ -743,9 +749,9 @@ class PokemonChatbot:
         return similar, pokemon_match
     
     def _make_conversational(self, data, user_question, context, user_profile=None):
-        """Use Gemini to make a response sound natural and conversational"""
-        if not getattr(self, 'gemini_client', None):
-            return data  # Return raw data if no Gemini
+        """Use OpenAI to make a response sound natural and conversational"""
+        if not getattr(self, 'openai_client', None):
+            return data  # Return raw data if no OpenAI
         
         # Get current topic from context
         topic = context.get('current_topic', 'general')
@@ -805,20 +811,23 @@ Instructions:
 - If user's name is known, use it occasionally.
 """
 
-            response = self.gemini_client.models.generate_content(
-                model='gemini-1.5-flash',
-                contents=prompt
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are Omnidex, an expert AI Pokemon Professor."},
+                    {"role": "user", "content": prompt}
+                ]
             )
-            result = response.text
+            result = response.choices[0].message.content
             print(f"✅ Conversational response generated successfully!")
             return result
         except Exception as e:
-            print(f"❌ Gemini conversational error: {e}")
+            print(f"❌ OpenAI conversational error: {e}")
             return data  # Fallback to raw data
             
     def _answer_general_knowledge(self, question, context, user_profile=None):
         """Use Gemini to answer general Pokemon questions not in CSV"""
-        if not getattr(self, 'gemini_client', None):
+        if not getattr(self, 'openai_client', None):
             return "I don't have that information in my database."
             
         try:
@@ -857,13 +866,16 @@ Instructions:
 - Use 1-2 emoji.
 - If user's name is known, use it naturally.
 """
-            response = self.gemini_client.models.generate_content(
-                model='gemini-2.0-flash',
-                contents=prompt
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are Omnidex, an expert AI Pokemon Professor."},
+                    {"role": "user", "content": prompt}
+                ]
             )
-            return response.text
+            return response.choices[0].message.content
         except Exception as e:
-            print(f"Gemini general knowledge error: {e}")
+            print(f"OpenAI general knowledge error: {e}")
             return "I'm having trouble accessing my Pokemon knowledge base right now."
         
     def answer_question(self, question, context, user_profile=None):
@@ -893,7 +905,7 @@ Instructions:
         # Handle greetings and general conversation with Gemini
         greetings = ['hi', 'hello', 'hey', 'heyy', 'yo', 'sup', 'what\'s up', 'howdy', 'greetings']
         if any(question_lower.startswith(g) for g in greetings) or len(question_lower) < 5:
-            if getattr(self, 'gemini_client', None):
+            if getattr(self, 'openai_client', None):
                 try:
                     # Personalize greeting if name is known
                     greeting_name = f" {user_profile['name']}" if user_profile and user_profile.get('name') else ""
@@ -904,13 +916,16 @@ The user{greeting_name} just said: "{original_question}"
 Respond naturally and warmly! Introduce yourself as PokéBot and invite them to ask you anything about Pokemon - 
 stats, lore, comparisons, evolutions, stories, etc. Also mention you can recommend similar Pokemon! 
 Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
-                    response = self.gemini_client.models.generate_content(
-                        model='gemini-1.5-flash',
-                        contents=prompt
+                    response = self.openai_client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": "You are PokéBot, a friendly Pokemon expert."},
+                            {"role": "user", "content": prompt}
+                        ]
                     )
-                    return response.text
+                    return response.choices[0].message.content
                 except Exception as e:
-                    print(f"Gemini greeting error: {e}")
+                    print(f"OpenAI greeting error: {e}")
             return "Hey there! 👋 I'm PokéBot, your Pokemon expert! Ask me anything about Pokemon - stats, stories, evolutions, comparisons, or let me recommend similar Pokemon!"
         
         # ============ PRONOUN RESOLUTION ============
@@ -1153,15 +1168,16 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
         return self._answer_general_knowledge(original_question, context, user_profile)
 
     def analyze_image(self, image_path):
-        """Analyze an uploaded image to identify a Pokemon using Gemini Vision"""
-        if not self.gemini_model:
+        """Analyze an uploaded image to identify a Pokemon using OpenAI Vision"""
+        if not getattr(self, 'openai_client', None):
             return {"error": "AI Vision not enabled (missing API key)"}
 
         try:
-            print(f"👁️ Analyzing image: {image_path}")
-
-            # Load image
-            img = Image.open(image_path)
+            print(f"👁️ Analyzing image with OpenAI: {image_path}")
+            
+            # Encode image to base64
+            with open(image_path, "rb") as image_file:
+                base64_image = base64.b64encode(image_file.read()).decode('utf-8')
 
             # Use Gemini Vision
             # vision_model = genai.GenerativeModel('gemini-flash-latest') # No longer needed with new client pattern
@@ -1176,11 +1192,25 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             }
             Do not include Markdown formatting like ```json. Just return the raw JSON string."""
 
-            response = self.gemini_client.models.generate_content(
-                model='gemini-1.5-flash',
-                contents=[prompt, img]
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o",  # Use GPT-4o for vision
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_image}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                max_tokens=300
             )
-            text = response.text.strip()
+            text = response.choices[0].message.content.strip()
 
             # Clean up potential markdown formatting
             if text.startswith('```json'):
@@ -1385,7 +1415,7 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             if cached:
                 print(f"💾 Using cached answer for: {query}")
                 context = "\n".join([f"- {r.get('title', '')}: {r.get('body', '')}" for r in cached.get('results', [])])
-                if getattr(self, 'gemini_client', None):
+                if getattr(self, 'openai_client', None):
                     try:
                         prompt = f"""You are Omnidex, an expert Pokemon Storyteller.
 User asked: {query}
@@ -1395,11 +1425,14 @@ Using this cached information:
 
 Tell a detailed and engaging story/answer. Do NOT be brief.
 If it's about lore, be dramatic and immersive."""
-                        response = self.gemini_client.models.generate_content(
-                            model='gemini-1.5-flash',
-                            contents=prompt
+                        response = self.openai_client.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=[
+                                {"role": "system", "content": "You are Omnidex, the ultimate Pokemon Storyteller."},
+                                {"role": "user", "content": prompt}
+                            ]
                         )
-                        return response.text
+                        return response.choices[0].message.content
                     except:
                         pass
             
@@ -1422,7 +1455,7 @@ If it's about lore, be dramatic and immersive."""
                                 result += f"\nHP: {pokemon_info['hp']}, Attack: {pokemon_info['attack']}, Defense: {pokemon_info['defense']}, Speed: {pokemon_info['speed']}\n"
                                 result += f"Generation: {pokemon_info['generation']}\n"
                                 result += f"\n✅ Added to my database! I'll remember this Pokemon from now on."
-                                return self._make_conversational(result, query) if getattr(self, 'gemini_client', None) else result
+                                return self._make_conversational(result, query) if getattr(self, 'openai_client', None) else result
                              break
 
             # 3. Search the web for story/lore questions - UPDATED LOGIC
@@ -1466,8 +1499,8 @@ If it's about lore, be dramatic and immersive."""
                 for r in results
             ])
             
-            # If Gemini is available, generate a natural response
-            if getattr(self, 'gemini_client', None):
+            # If OpenAI is available, generate a natural response
+            if getattr(self, 'openai_client', None):
                 try:
                     if is_lore_query:
                         prompt = f"""You are Omnidex, the ultimate Pokemon Storyteller.
@@ -1497,14 +1530,17 @@ Info found:
 
 Answer conversationally and helpfully. Keep it to 3-4 sentences."""
 
-                    response = self.gemini_client.models.generate_content(
-                        model='gemini-1.5-flash',
-                        contents=prompt
+                    response = self.openai_client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": "You are Omnidex, the ultimate Pokemon Storyteller."},
+                            {"role": "user", "content": prompt}
+                        ]
                     )
-                    return response.text
+                    return response.choices[0].message.content
                     
                 except Exception as e:
-                    print(f"Gemini error: {e}")
+                    print(f"OpenAI error: {e}")
                     # Fall back to raw results
             
             # Fallback: return formatted search results
