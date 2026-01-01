@@ -24,9 +24,8 @@ except ImportError:
 
 # Configure Gemini API - uses free tier
 # IMPORTANT: Set GEMINI_API_KEY environment variable for security
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
-if GEMINI_API_KEY:
 # GEMINI_API_KEY is handled by the client initialization below
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 
 
 class PokemonChatbot:
