@@ -9,7 +9,7 @@ import os
 import json
 import requests
 from duckduckgo_search import DDGS
-import google.generativeai as genai
+from google import genai
 import faiss
 from PIL import Image
 import io
@@ -26,7 +26,7 @@ except ImportError:
 # IMPORTANT: Set GEMINI_API_KEY environment variable for security
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+# GEMINI_API_KEY is handled by the client initialization below
 
 
 class PokemonChatbot:
@@ -116,7 +116,7 @@ class PokemonChatbot:
         self.gemini_model = None
         if GEMINI_API_KEY:
             try:
-                self.gemini_model = genai.GenerativeModel('gemini-flash-latest')
+                self.gemini_client = genai.Client(api_key=GEMINI_API_KEY)
                 print("✅ Gemini AI enabled for conversational responses!")
             except Exception as e:
                 print(f"⚠️ Gemini initialization failed: {e}")
@@ -745,7 +745,7 @@ class PokemonChatbot:
     
     def _make_conversational(self, data, user_question, context, user_profile=None):
         """Use Gemini to make a response sound natural and conversational"""
-        if not self.gemini_model:
+        if not getattr(self, 'gemini_client', None):
             return data  # Return raw data if no Gemini
         
         # Get current topic from context
@@ -806,7 +806,10 @@ Instructions:
 - If user's name is known, use it occasionally.
 """
 
-            response = self.gemini_model.generate_content(prompt)
+            response = self.gemini_client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=prompt
+            )
             return response.text
         except Exception as e:
             print(f"Gemini error: {e}")
@@ -853,7 +856,10 @@ Instructions:
 - Use 1-2 emoji.
 - If user's name is known, use it naturally.
 """
-            response = self.gemini_model.generate_content(prompt)
+            response = self.gemini_client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=prompt
+            )
             return response.text
         except Exception as e:
             print(f"Gemini general knowledge error: {e}")
@@ -886,7 +892,7 @@ Instructions:
         # Handle greetings and general conversation with Gemini
         greetings = ['hi', 'hello', 'hey', 'heyy', 'yo', 'sup', 'what\'s up', 'howdy', 'greetings']
         if any(question_lower.startswith(g) for g in greetings) or len(question_lower) < 5:
-            if self.gemini_model:
+            if getattr(self, 'gemini_client', None):
                 try:
                     # Personalize greeting if name is known
                     greeting_name = f" {user_profile['name']}" if user_profile and user_profile.get('name') else ""
@@ -897,7 +903,10 @@ The user{greeting_name} just said: "{original_question}"
 Respond naturally and warmly! Introduce yourself as PokéBot and invite them to ask you anything about Pokemon - 
 stats, lore, comparisons, evolutions, stories, etc. Also mention you can recommend similar Pokemon! 
 Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
-                    response = self.gemini_model.generate_content(prompt)
+                    response = self.gemini_client.models.generate_content(
+                        model='gemini-2.0-flash',
+                        contents=prompt
+                    )
                     return response.text
                 except Exception as e:
                     print(f"Gemini greeting error: {e}")
@@ -1153,8 +1162,8 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             # Load image
             img = Image.open(image_path)
 
-            # Use Gemini Pro Vision (or compatible model)
-            vision_model = genai.GenerativeModel('gemini-flash-latest')
+            # Use Gemini Vision
+            # vision_model = genai.GenerativeModel('gemini-flash-latest') # No longer needed with new client pattern
 
             prompt = """Identify the Pokemon in this image.
             Return a valid JSON object with:
@@ -1166,7 +1175,10 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             }
             Do not include Markdown formatting like ```json. Just return the raw JSON string."""
 
-            response = vision_model.generate_content([prompt, img])
+            response = self.gemini_client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=[prompt, img]
+            )
             text = response.text.strip()
 
             # Clean up potential markdown formatting
@@ -1372,7 +1384,7 @@ Be friendly and use 1-2 Pokemon emoji. Keep it to 2-3 sentences."""
             if cached:
                 print(f"💾 Using cached answer for: {query}")
                 context = "\n".join([f"- {r.get('title', '')}: {r.get('body', '')}" for r in cached.get('results', [])])
-                if self.gemini_model:
+                if getattr(self, 'gemini_client', None):
                     try:
                         prompt = f"""You are Omnidex, an expert Pokemon Storyteller.
 User asked: {query}
@@ -1382,7 +1394,10 @@ Using this cached information:
 
 Tell a detailed and engaging story/answer. Do NOT be brief.
 If it's about lore, be dramatic and immersive."""
-                        response = self.gemini_model.generate_content(prompt)
+                        response = self.gemini_client.models.generate_content(
+                            model='gemini-2.0-flash',
+                            contents=prompt
+                        )
                         return response.text
                     except:
                         pass
@@ -1406,7 +1421,7 @@ If it's about lore, be dramatic and immersive."""
                                 result += f"\nHP: {pokemon_info['hp']}, Attack: {pokemon_info['attack']}, Defense: {pokemon_info['defense']}, Speed: {pokemon_info['speed']}\n"
                                 result += f"Generation: {pokemon_info['generation']}\n"
                                 result += f"\n✅ Added to my database! I'll remember this Pokemon from now on."
-                                return self._make_conversational(result, query) if self.gemini_model else result
+                                return self._make_conversational(result, query) if getattr(self, 'gemini_client', None) else result
                              break
 
             # 3. Search the web for story/lore questions - UPDATED LOGIC
@@ -1445,7 +1460,7 @@ If it's about lore, be dramatic and immersive."""
             ])
             
             # If Gemini is available, generate a natural response
-            if self.gemini_model:
+            if getattr(self, 'gemini_client', None):
                 try:
                     if is_lore_query:
                         prompt = f"""You are Omnidex, the ultimate Pokemon Storyteller.
@@ -1470,7 +1485,10 @@ Info found:
 
 Answer conversationally and helpfully. Keep it to 3-4 sentences."""
 
-                    response = self.gemini_model.generate_content(prompt)
+                    response = self.gemini_client.models.generate_content(
+                        model='gemini-2.0-flash',
+                        contents=prompt
+                    )
                     return response.text
                     
                 except Exception as e:
