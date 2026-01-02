@@ -1,0 +1,702 @@
+[
+    [
+        "tell me about pikachu",
+        "pokemon_info"
+    ],
+    [
+        "i want to know about charizard",
+        "pokemon_info"
+    ],
+    [
+        "what is charizard",
+        "pokemon_info"
+    ],
+    [
+        "who is mewtwo",
+        "pokemon_info"
+    ],
+    [
+        "whats pikachu",
+        "pokemon_info"
+    ],
+    [
+        "what's bulbasaur",
+        "pokemon_info"
+    ],
+    [
+        "can you tell me about dragonite",
+        "pokemon_info"
+    ],
+    [
+        "i wanna know about gengar",
+        "pokemon_info"
+    ],
+    [
+        "give me info on lucario",
+        "pokemon_info"
+    ],
+    [
+        "information about eevee",
+        "pokemon_info"
+    ],
+    [
+        "describe snorlax",
+        "pokemon_info"
+    ],
+    [
+        "stats for gyarados",
+        "pokemon_info"
+    ],
+    [
+        "show me pikachu",
+        "pokemon_info"
+    ],
+    [
+        "pikachu stats",
+        "pokemon_info"
+    ],
+    [
+        "charizard info",
+        "pokemon_info"
+    ],
+    [
+        "details about mewtwo",
+        "pokemon_info"
+    ],
+    [
+        "tell me something about mew",
+        "pokemon_info"
+    ],
+    [
+        "i want details on blastoise",
+        "pokemon_info"
+    ],
+    [
+        "what do you know about venusaur",
+        "pokemon_info"
+    ],
+    [
+        "give me details about alakazam",
+        "pokemon_info"
+    ],
+    [
+        "info on machamp",
+        "pokemon_info"
+    ],
+    [
+        "what can you tell me about arcanine",
+        "pokemon_info"
+    ],
+    [
+        "who is dragonite",
+        "pokemon_info"
+    ],
+    [
+        "explain gengar to me",
+        "pokemon_info"
+    ],
+    [
+        "what about lapras",
+        "pokemon_info"
+    ],
+    [
+        "how about magikarp",
+        "pokemon_info"
+    ],
+    [
+        "and what about jigglypuff",
+        "pokemon_info"
+    ],
+    [
+        "list all fire type pokemon",
+        "type_query"
+    ],
+    [
+        "show me water type",
+        "type_query"
+    ],
+    [
+        "what are the grass type pokemon",
+        "type_query"
+    ],
+    [
+        "which pokemon are fire type",
+        "type_query"
+    ],
+    [
+        "i want to see electric types",
+        "type_query"
+    ],
+    [
+        "show electric pokemon",
+        "type_query"
+    ],
+    [
+        "give me all dragon types",
+        "type_query"
+    ],
+    [
+        "what pokemon are psychic type",
+        "type_query"
+    ],
+    [
+        "name all ice type pokemon",
+        "type_query"
+    ],
+    [
+        "who are the fighting types",
+        "type_query"
+    ],
+    [
+        "list poison pokemon",
+        "type_query"
+    ],
+    [
+        "ground type pokemon please",
+        "type_query"
+    ],
+    [
+        "i need rock type pokemon",
+        "type_query"
+    ],
+    [
+        "ghost pokemon list",
+        "type_query"
+    ],
+    [
+        "dark type pokemon",
+        "type_query"
+    ],
+    [
+        "steel types",
+        "type_query"
+    ],
+    [
+        "fairy type pokemon",
+        "type_query"
+    ],
+    [
+        "normal type pokemon",
+        "type_query"
+    ],
+    [
+        "bug types",
+        "type_query"
+    ],
+    [
+        "flying pokemon",
+        "type_query"
+    ],
+    [
+        "all the water pokemon",
+        "type_query"
+    ],
+    [
+        "fire pokemon",
+        "type_query"
+    ],
+    [
+        "how many legendary pokemon are there",
+        "count_legendary"
+    ],
+    [
+        "count the legendary pokemon",
+        "count_legendary"
+    ],
+    [
+        "number of legendary",
+        "count_legendary"
+    ],
+    [
+        "how many fire type pokemon",
+        "count_type"
+    ],
+    [
+        "count water type",
+        "count_type"
+    ],
+    [
+        "how many water pokemon are there",
+        "count_type"
+    ],
+    [
+        "number of grass types",
+        "count_type"
+    ],
+    [
+        "how many pokemon total",
+        "count_total"
+    ],
+    [
+        "total pokemon count",
+        "count_total"
+    ],
+    [
+        "how many pokemon do you have",
+        "count_total"
+    ],
+    [
+        "how many pokemon in database",
+        "count_total"
+    ],
+    [
+        "who has the highest attack",
+        "stat_leader"
+    ],
+    [
+        "strongest attack pokemon",
+        "stat_leader"
+    ],
+    [
+        "who has the best defense",
+        "stat_leader"
+    ],
+    [
+        "fastest pokemon",
+        "stat_leader"
+    ],
+    [
+        "which pokemon is fastest",
+        "stat_leader"
+    ],
+    [
+        "highest hp pokemon",
+        "stat_leader"
+    ],
+    [
+        "most hp",
+        "stat_leader"
+    ],
+    [
+        "best attack",
+        "stat_leader"
+    ],
+    [
+        "highest defense",
+        "stat_leader"
+    ],
+    [
+        "who has max speed",
+        "stat_leader"
+    ],
+    [
+        "pokemon with highest attack",
+        "stat_leader"
+    ],
+    [
+        "who is the strongest",
+        "strongest_overall"
+    ],
+    [
+        "most powerful pokemon",
+        "strongest_overall"
+    ],
+    [
+        "best overall stats",
+        "strongest_overall"
+    ],
+    [
+        "strongest pokemon overall",
+        "strongest_overall"
+    ],
+    [
+        "who is the best pokemon",
+        "strongest_overall"
+    ],
+    [
+        "which pokemon is most powerful",
+        "strongest_overall"
+    ],
+    [
+        "list all legendary pokemon",
+        "list_legendary"
+    ],
+    [
+        "show me legendary pokemon",
+        "list_legendary"
+    ],
+    [
+        "name all legendary",
+        "list_legendary"
+    ],
+    [
+        "which pokemon are legendary",
+        "list_legendary"
+    ],
+    [
+        "i want to see legendary pokemon",
+        "list_legendary"
+    ],
+    [
+        "legendary ones",
+        "list_legendary"
+    ],
+    [
+        "show legendaries",
+        "list_legendary"
+    ],
+    [
+        "all legendary",
+        "list_legendary"
+    ],
+    [
+        "who are the legendaries",
+        "list_legendary"
+    ],
+    [
+        "show me generation 1 pokemon",
+        "generation_query"
+    ],
+    [
+        "list gen 2 pokemon",
+        "generation_query"
+    ],
+    [
+        "pokemon from generation 3",
+        "generation_query"
+    ],
+    [
+        "gen 1 pokemon",
+        "generation_query"
+    ],
+    [
+        "first generation pokemon",
+        "generation_query"
+    ],
+    [
+        "generation 4 pokemon",
+        "generation_query"
+    ],
+    [
+        "show gen 5",
+        "generation_query"
+    ],
+    [
+        "which pokemon are from gen 1",
+        "generation_query"
+    ],
+    [
+        "original pokemon",
+        "generation_query"
+    ],
+    [
+        "compare pikachu and raichu",
+        "compare"
+    ],
+    [
+        "who is better charizard or blastoise",
+        "compare"
+    ],
+    [
+        "pikachu vs charizard",
+        "compare"
+    ],
+    [
+        "charizard versus blastoise",
+        "compare"
+    ],
+    [
+        "which is stronger pikachu or raichu",
+        "compare"
+    ],
+    [
+        "battle between mewtwo and mew",
+        "compare"
+    ],
+    [
+        "compare stats of dragonite and salamence",
+        "compare"
+    ],
+    [
+        "who would win pikachu or eevee",
+        "compare"
+    ],
+    [
+        "difference between charizard and dragonite",
+        "compare"
+    ],
+    [
+        "show dual type pokemon",
+        "dual_type"
+    ],
+    [
+        "list pokemon with two types",
+        "dual_type"
+    ],
+    [
+        "which pokemon have dual types",
+        "dual_type"
+    ],
+    [
+        "pokemon with multiple types",
+        "dual_type"
+    ],
+    [
+        "two type pokemon",
+        "dual_type"
+    ],
+    [
+        "recommend pokemon like pikachu",
+        "recommend"
+    ],
+    [
+        "similar pokemon to charizard",
+        "recommend"
+    ],
+    [
+        "pokemon similar to gengar",
+        "recommend"
+    ],
+    [
+        "find pokemon like mewtwo",
+        "recommend"
+    ],
+    [
+        "suggest pokemon like dragonite",
+        "recommend"
+    ],
+    [
+        "who is similar to pikachu",
+        "recommend"
+    ],
+    [
+        "pokemon that are like eevee",
+        "recommend"
+    ],
+    [
+        "i want pokemon similar to lucario",
+        "recommend"
+    ],
+    [
+        "anything like snorlax",
+        "recommend"
+    ],
+    [
+        "show me pokemon like gyarados",
+        "recommend"
+    ],
+    [
+        "alternatives to charizard",
+        "recommend"
+    ],
+    [
+        "what is charizard weak to",
+        "weakness"
+    ],
+    [
+        "what are pikachu weaknesses",
+        "weakness"
+    ],
+    [
+        "pikachu weakness",
+        "weakness"
+    ],
+    [
+        "what is fire type weak against",
+        "weakness"
+    ],
+    [
+        "water type weakness",
+        "weakness"
+    ],
+    [
+        "what beats fire type",
+        "weakness"
+    ],
+    [
+        "what is super effective against water",
+        "weakness"
+    ],
+    [
+        "charizard weaknesses",
+        "weakness"
+    ],
+    [
+        "what type beats dragon",
+        "weakness"
+    ],
+    [
+        "what is dragon weak to",
+        "weakness"
+    ],
+    [
+        "weaknesses of mewtwo",
+        "weakness"
+    ],
+    [
+        "what can beat pikachu",
+        "weakness"
+    ],
+    [
+        "what is strong against grass",
+        "strength"
+    ],
+    [
+        "what type is good against water",
+        "strength"
+    ],
+    [
+        "fire type strengths",
+        "strength"
+    ],
+    [
+        "what does electric beat",
+        "strength"
+    ],
+    [
+        "pikachu is strong against what",
+        "strength"
+    ],
+    [
+        "charizard is super effective against",
+        "strength"
+    ],
+    [
+        "how does pikachu evolve",
+        "evolution"
+    ],
+    [
+        "what does charmander evolve into",
+        "evolution"
+    ],
+    [
+        "pikachu evolution",
+        "evolution"
+    ],
+    [
+        "eevee evolutions",
+        "evolution"
+    ],
+    [
+        "how to evolve eevee",
+        "evolution"
+    ],
+    [
+        "what evolves into charizard",
+        "evolution"
+    ],
+    [
+        "evolution of bulbasaur",
+        "evolution"
+    ],
+    [
+        "does pikachu evolve",
+        "evolution"
+    ],
+    [
+        "magikarp evolution",
+        "evolution"
+    ],
+    [
+        "how does gastly evolve",
+        "evolution"
+    ],
+    [
+        "what level does charmander evolve",
+        "evolution"
+    ],
+    [
+        "dragonite evolution chain",
+        "evolution"
+    ],
+    [
+        "what about its defense",
+        "context_stat"
+    ],
+    [
+        "and its attack",
+        "context_stat"
+    ],
+    [
+        "how about speed",
+        "context_stat"
+    ],
+    [
+        "what type is it",
+        "context_type"
+    ],
+    [
+        "is it legendary",
+        "context_legendary"
+    ],
+    [
+        "what is it weak to",
+        "context_weakness"
+    ],
+    [
+        "how does it evolve",
+        "context_evolution"
+    ],
+    [
+        "show me similar ones",
+        "context_recommend"
+    ],
+    [
+        "any pokemon like it",
+        "context_recommend"
+    ],
+    [
+        "tell me its story",
+        "context_story"
+    ],
+    [
+        "what is its lore",
+        "context_story"
+    ],
+    [
+        "tell me more about it",
+        "context_story"
+    ],
+    [
+        "its backstory",
+        "context_story"
+    ],
+    [
+        "what is the story behind it",
+        "context_story"
+    ],
+    [
+        "give me its history",
+        "context_story"
+    ],
+    [
+        "how was it found",
+        "context_story"
+    ],
+    [
+        "how did they find it",
+        "context_story"
+    ],
+    [
+        "where does it come from",
+        "context_story"
+    ],
+    [
+        "what is its origin",
+        "context_story"
+    ],
+    [
+        "origin story",
+        "context_story"
+    ],
+    [
+        "how was it created",
+        "context_story"
+    ],
+    [
+        "who created it",
+        "context_story"
+    ],
+    [
+        "how was it discovered",
+        "context_story"
+    ],
+    [
+        "where did it come from",
+        "context_story"
+    ],
+    [
+        "its origin",
+        "context_story"
+    ]
+]

@@ -1,0 +1,340 @@
+{
+    "Normal": {
+        "weak": [
+            "Fighting"
+        ],
+        "immune": [
+            "Ghost"
+        ],
+        "resist": [],
+        "strong": []
+    },
+    "Fire": {
+        "weak": [
+            "Water",
+            "Ground",
+            "Rock"
+        ],
+        "resist": [
+            "Fire",
+            "Grass",
+            "Ice",
+            "Bug",
+            "Steel",
+            "Fairy"
+        ],
+        "immune": [],
+        "strong": [
+            "Grass",
+            "Ice",
+            "Bug",
+            "Steel"
+        ]
+    },
+    "Water": {
+        "weak": [
+            "Electric",
+            "Grass"
+        ],
+        "resist": [
+            "Fire",
+            "Water",
+            "Ice",
+            "Steel"
+        ],
+        "immune": [],
+        "strong": [
+            "Fire",
+            "Ground",
+            "Rock"
+        ]
+    },
+    "Electric": {
+        "weak": [
+            "Ground"
+        ],
+        "resist": [
+            "Electric",
+            "Flying",
+            "Steel"
+        ],
+        "immune": [],
+        "strong": [
+            "Water",
+            "Flying"
+        ]
+    },
+    "Grass": {
+        "weak": [
+            "Fire",
+            "Ice",
+            "Poison",
+            "Flying",
+            "Bug"
+        ],
+        "resist": [
+            "Water",
+            "Electric",
+            "Grass",
+            "Ground"
+        ],
+        "immune": [],
+        "strong": [
+            "Water",
+            "Ground",
+            "Rock"
+        ]
+    },
+    "Ice": {
+        "weak": [
+            "Fire",
+            "Fighting",
+            "Rock",
+            "Steel"
+        ],
+        "resist": [
+            "Ice"
+        ],
+        "immune": [],
+        "strong": [
+            "Grass",
+            "Ground",
+            "Flying",
+            "Dragon"
+        ]
+    },
+    "Fighting": {
+        "weak": [
+            "Flying",
+            "Psychic",
+            "Fairy"
+        ],
+        "resist": [
+            "Bug",
+            "Rock",
+            "Dark"
+        ],
+        "immune": [],
+        "strong": [
+            "Normal",
+            "Ice",
+            "Rock",
+            "Dark",
+            "Steel"
+        ]
+    },
+    "Poison": {
+        "weak": [
+            "Ground",
+            "Psychic"
+        ],
+        "resist": [
+            "Grass",
+            "Fighting",
+            "Poison",
+            "Bug",
+            "Fairy"
+        ],
+        "immune": [],
+        "strong": [
+            "Grass",
+            "Fairy"
+        ]
+    },
+    "Ground": {
+        "weak": [
+            "Water",
+            "Grass",
+            "Ice"
+        ],
+        "resist": [
+            "Poison",
+            "Rock"
+        ],
+        "immune": [
+            "Electric"
+        ],
+        "strong": [
+            "Fire",
+            "Electric",
+            "Poison",
+            "Rock",
+            "Steel"
+        ]
+    },
+    "Flying": {
+        "weak": [
+            "Electric",
+            "Ice",
+            "Rock"
+        ],
+        "resist": [
+            "Grass",
+            "Fighting",
+            "Bug"
+        ],
+        "immune": [
+            "Ground"
+        ],
+        "strong": [
+            "Grass",
+            "Fighting",
+            "Bug"
+        ]
+    },
+    "Psychic": {
+        "weak": [
+            "Bug",
+            "Ghost",
+            "Dark"
+        ],
+        "resist": [
+            "Fighting",
+            "Psychic"
+        ],
+        "immune": [],
+        "strong": [
+            "Fighting",
+            "Poison"
+        ]
+    },
+    "Bug": {
+        "weak": [
+            "Fire",
+            "Flying",
+            "Rock"
+        ],
+        "resist": [
+            "Grass",
+            "Fighting",
+            "Ground"
+        ],
+        "immune": [],
+        "strong": [
+            "Grass",
+            "Psychic",
+            "Dark"
+        ]
+    },
+    "Rock": {
+        "weak": [
+            "Water",
+            "Grass",
+            "Fighting",
+            "Ground",
+            "Steel"
+        ],
+        "resist": [
+            "Normal",
+            "Fire",
+            "Poison",
+            "Flying"
+        ],
+        "immune": [],
+        "strong": [
+            "Fire",
+            "Ice",
+            "Flying",
+            "Bug"
+        ]
+    },
+    "Ghost": {
+        "weak": [
+            "Ghost",
+            "Dark"
+        ],
+        "resist": [
+            "Poison",
+            "Bug"
+        ],
+        "immune": [
+            "Normal",
+            "Fighting"
+        ],
+        "strong": [
+            "Psychic",
+            "Ghost"
+        ]
+    },
+    "Dragon": {
+        "weak": [
+            "Ice",
+            "Dragon",
+            "Fairy"
+        ],
+        "resist": [
+            "Fire",
+            "Water",
+            "Electric",
+            "Grass"
+        ],
+        "immune": [],
+        "strong": [
+            "Dragon"
+        ]
+    },
+    "Dark": {
+        "weak": [
+            "Fighting",
+            "Bug",
+            "Fairy"
+        ],
+        "resist": [
+            "Ghost",
+            "Dark"
+        ],
+        "immune": [
+            "Psychic"
+        ],
+        "strong": [
+            "Psychic",
+            "Ghost"
+        ]
+    },
+    "Steel": {
+        "weak": [
+            "Fire",
+            "Fighting",
+            "Ground"
+        ],
+        "resist": [
+            "Normal",
+            "Grass",
+            "Ice",
+            "Flying",
+            "Psychic",
+            "Bug",
+            "Rock",
+            "Dragon",
+            "Steel",
+            "Fairy"
+        ],
+        "immune": [
+            "Poison"
+        ],
+        "strong": [
+            "Ice",
+            "Rock",
+            "Fairy"
+        ]
+    },
+    "Fairy": {
+        "weak": [
+            "Poison",
+            "Steel"
+        ],
+        "resist": [
+            "Fighting",
+            "Bug",
+            "Dark"
+        ],
+        "immune": [
+            "Dragon"
+        ],
+        "strong": [
+            "Fighting",
+            "Dragon",
+            "Dark"
+        ]
+    }
+}

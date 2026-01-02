@@ -1,0 +1,143 @@
+{
+    "Bulbasaur": {
+        "evolves_to": "Ivysaur",
+        "level": 16,
+        "method": "level"
+    },
+    "Ivysaur": {
+        "evolves_to": "Venusaur",
+        "level": 32,
+        "method": "level",
+        "evolves_from": "Bulbasaur"
+    },
+    "Venusaur": {
+        "evolves_from": "Ivysaur"
+    },
+    "Charmander": {
+        "evolves_to": "Charmeleon",
+        "level": 16,
+        "method": "level"
+    },
+    "Charmeleon": {
+        "evolves_to": "Charizard",
+        "level": 36,
+        "method": "level",
+        "evolves_from": "Charmander"
+    },
+    "Charizard": {
+        "evolves_from": "Charmeleon"
+    },
+    "Squirtle": {
+        "evolves_to": "Wartortle",
+        "level": 16,
+        "method": "level"
+    },
+    "Wartortle": {
+        "evolves_to": "Blastoise",
+        "level": 36,
+        "method": "level",
+        "evolves_from": "Squirtle"
+    },
+    "Blastoise": {
+        "evolves_from": "Wartortle"
+    },
+    "Pichu": {
+        "evolves_to": "Pikachu",
+        "method": "friendship"
+    },
+    "Pikachu": {
+        "evolves_to": "Raichu",
+        "method": "Thunder Stone",
+        "evolves_from": "Pichu"
+    },
+    "Raichu": {
+        "evolves_from": "Pikachu"
+    },
+    "Eevee": {
+        "evolves_to": [
+            "Vaporeon (Water Stone)",
+            "Jolteon (Thunder Stone)",
+            "Flareon (Fire Stone)",
+            "Espeon (Friendship + Day)",
+            "Umbreon (Friendship + Night)",
+            "Leafeon (Leaf Stone)",
+            "Glaceon (Ice Stone)",
+            "Sylveon (Affection + Fairy move)"
+        ],
+        "method": "multiple"
+    },
+    "Magikarp": {
+        "evolves_to": "Gyarados",
+        "level": 20,
+        "method": "level"
+    },
+    "Gyarados": {
+        "evolves_from": "Magikarp"
+    },
+    "Dratini": {
+        "evolves_to": "Dragonair",
+        "level": 30,
+        "method": "level"
+    },
+    "Dragonair": {
+        "evolves_to": "Dragonite",
+        "level": 55,
+        "method": "level",
+        "evolves_from": "Dratini"
+    },
+    "Dragonite": {
+        "evolves_from": "Dragonair"
+    },
+    "Gastly": {
+        "evolves_to": "Haunter",
+        "level": 25,
+        "method": "level"
+    },
+    "Haunter": {
+        "evolves_to": "Gengar",
+        "method": "trade",
+        "evolves_from": "Gastly"
+    },
+    "Gengar": {
+        "evolves_from": "Haunter"
+    },
+    "Abra": {
+        "evolves_to": "Kadabra",
+        "level": 16,
+        "method": "level"
+    },
+    "Kadabra": {
+        "evolves_to": "Alakazam",
+        "method": "trade",
+        "evolves_from": "Abra"
+    },
+    "Alakazam": {
+        "evolves_from": "Kadabra"
+    },
+    "Machop": {
+        "evolves_to": "Machoke",
+        "level": 28,
+        "method": "level"
+    },
+    "Machoke": {
+        "evolves_to": "Machamp",
+        "method": "trade",
+        "evolves_from": "Machop"
+    },
+    "Machamp": {
+        "evolves_from": "Machoke"
+    },
+    "Geodude": {
+        "evolves_to": "Graveler",
+        "level": 25,
+        "method": "level"
+    },
+    "Graveler": {
+        "evolves_to": "Golem",
+        "method": "trade",
+        "evolves_from": "Geodude"
+    },
+    "Golem": {
+        "evolves_from": "Graveler"
+    }
+}
