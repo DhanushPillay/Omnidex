@@ -137,10 +137,25 @@ class PokemonChatbot:
             # Fallback / General Knowledge
             # SELF-LEARNING CHECK (Last Resort)
             potential_name = None
+            
+            # 1. Check for capitalized words (legacy)
             words = [w for w in question.split() if w[0].isupper() and len(w) > 3]
             if words:
                  potential_name = words[-1]
             
+            # 2. If short query, assume it might be a name (even lowercase)
+            # e.g., "lechonk", "who is lechonk"
+            if not potential_name:
+                clean_q = question.strip().lower()
+                # Remove common prefixes
+                for prefix in ["who is ", "what is ", "tell me about ", "show me "]:
+                    if clean_q.startswith(prefix):
+                        clean_q = clean_q.replace(prefix, "")
+                
+                # If what remains is a single word
+                if " " not in clean_q.strip() and len(clean_q) > 3:
+                     potential_name = clean_q.strip().title()
+
             if potential_name:
                 print(f"🧠 Unknown Pokemon '{potential_name}' detected. Learning...")
                 new_data = self.external_service.fetch_from_pokeapi(potential_name)

@@ -122,7 +122,18 @@ def ask():
         # If no Pokemon name found (and not comparing), try to use context
         if not pokemon_name and not comparison_images:
             # Check if there's a Pokemon name in the conversation context
-            pokemon_name = context.get('last_pokemon')
+            # BUT only use it if the user implies it (pronouns or follow-up intents)
+            last_poke = context.get('last_pokemon')
+            if last_poke:
+                # Intents that naturally follow a subject
+                follow_up_intents = ['weakness', 'strength', 'evolution', 'stats', 'moves']
+                intent = context.get('last_intent')
+                
+                # Pronouns in question
+                has_pronoun = any(w in question.lower().split() for w in ['it', 'its', 'he', 'she', 'this', 'that'])
+                
+                if (intent in follow_up_intents) or has_pronoun or (intent and intent.startswith('context_')):
+                    pokemon_name = last_poke
         
         if pokemon_name:
             if not image_url:
