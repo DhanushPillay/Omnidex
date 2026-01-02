@@ -1,10 +1,10 @@
-# 🧠 AI/ML Architecture in Omnidex
+# AI/ML Architecture in Omnidex
 
 > Technical documentation for the AI and Machine Learning features powering the Omnidex Pokemon Chatbot
 
 ---
 
-## 📖 Table of Contents
+## Table of Contents
 
 1. [Overview](#overview)
 2. [AI/ML Technologies Used](#aiml-technologies-used)
@@ -432,10 +432,10 @@ from duckduckgo_search import DDGS
 
 | File | Purpose |
 |------|---------|
-| [`backend/pokemon_chatbot.py`](file:///d:/1st%20ML/backend/pokemon_chatbot.py) | Main AI/ML logic (1568 lines) |
-| [`data/pokemon.csv`](file:///d:/1st%20ML/data) | Pokemon database for ML features |
-| [`requirements.txt`](file:///d:/1st%20ML/requirements.txt) | Python dependencies |
-| [`app.py`](file:///d:/1st%20ML/app.py) | Flask API serving the chatbot |
+| [`backend/pokemon_chatbot.py`](../backend/pokemon_chatbot.py) | Main AI/ML logic (1568 lines) |
+| [`data/pokemon_data.csv`](../data/pokemon_data.csv) | Pokemon database for ML features |
+| [`requirements.txt`](../requirements.txt) | Python dependencies |
+| [`app.py`](../app.py) | Flask API serving the chatbot |
 
 ---
 
