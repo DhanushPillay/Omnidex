@@ -124,12 +124,14 @@ Omnidex/
 │   ├── pokemon_data.csv    # Statistical Database
 │   ├── intents.json        # NLP Training Data
 │   └── type_chart.json     # Game Rules
-└── frontend/
-    ├── templates/
+    └── templates/
     │   └── index.html      # Chat Interface (HTML)
     └── static/
         ├── style.css       # Styling
         └── script.js       # Frontend Logic
+docs/
+├── AI_and_ML_Guide.md      # Architecture Deep Dive
+└── Project_File_Guide.md   # Detailed File Breakdowns
 ```
 
 ---
