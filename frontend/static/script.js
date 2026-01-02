@@ -184,7 +184,7 @@ function addMessage(text, sender, imageUrl = null, evolutionChain = null, compar
         const p1 = comparisonImages[0];
         const card1 = document.createElement('div');
         card1.className = 'pokemon-vs-card';
-        card1.innerHTML = `<img src="${p1.image}" alt="${p1.name}"><span>${p1.name}</span>`;
+        card1.innerHTML = `<img src="${p1.image}" alt="${p1.name}" onload="document.getElementById('messages-area').scrollTop = document.getElementById('messages-area').scrollHeight"><span>${p1.name}</span>`;
 
         // VS Badge
         const vsBadge = document.createElement('div');
@@ -195,7 +195,7 @@ function addMessage(text, sender, imageUrl = null, evolutionChain = null, compar
         const p2 = comparisonImages[1];
         const card2 = document.createElement('div');
         card2.className = 'pokemon-vs-card';
-        card2.innerHTML = `<img src="${p2.image}" alt="${p2.name}"><span>${p2.name}</span>`;
+        card2.innerHTML = `<img src="${p2.image}" alt="${p2.name}" onload="document.getElementById('messages-area').scrollTop = document.getElementById('messages-area').scrollHeight"><span>${p2.name}</span>`;
 
         compContainer.appendChild(card1);
         compContainer.appendChild(vsBadge);
@@ -236,6 +236,10 @@ function addMessage(text, sender, imageUrl = null, evolutionChain = null, compar
         const img = document.createElement('img');
         img.src = imageUrl;
         img.alt = 'Pokemon';
+        img.onload = () => {
+            const area = document.getElementById('messages-area');
+            area.scrollTop = area.scrollHeight;
+        };
         img.onerror = () => imgContainer.remove();
         imgContainer.appendChild(img);
         content.appendChild(imgContainer);

@@ -68,7 +68,25 @@ class PokemonChatbot:
                     response_data = self._format_pokemon_info(poke)
                     topic = "stats"
             else:
-                response_data = "Which Pokemon are you asking about?"
+                # SELF-LEARNING: Try to find unknowns on valid API
+                potential_name = None
+                # Basic heuristic: look for capitalized words that aren't common knowns
+                words = [w for w in question.split() if w[0].isupper() and len(w) > 3]
+                if words:
+                     potential_name = words[-1] # Take the last capitalized word as candidate
+                
+                if potential_name:
+                    print(f"🧠 Unknown Pokemon '{potential_name}' detected. Learning...")
+                    new_data = self.external_service.fetch_from_pokeapi(potential_name)
+                    if new_data:
+                        self.data_service.add_pokemon(new_data)
+                        context['last_pokemon'] = new_data['name']
+                        response_data = f"I didn't know about {new_data['name']}, but I just updated my Pokedex! ✨ It is a {new_data['types'][0]} type."
+                        topic = "stats"
+                    else:
+                        response_data = "Which Pokemon are you asking about?"
+                else:
+                    response_data = "Which Pokemon are you asking about?"
 
         elif intent == "pokemon_lore":
             name = self._extract_pokemon_name(question_lower) or context.get('last_pokemon')
@@ -117,10 +135,26 @@ class PokemonChatbot:
 
         else:
             # Fallback / General Knowledge
+            # SELF-LEARNING CHECK (Last Resort)
+            potential_name = None
+            words = [w for w in question.split() if w[0].isupper() and len(w) > 3]
+            if words:
+                 potential_name = words[-1]
+            
+            if potential_name:
+                print(f"🧠 Unknown Pokemon '{potential_name}' detected. Learning...")
+                new_data = self.external_service.fetch_from_pokeapi(potential_name)
+                if new_data:
+                    self.data_service.add_pokemon(new_data)
+                    context['last_pokemon'] = new_data['name']
+                    # Recursive call now that we have it? Or just return success
+                    response_data = f"I didn't know about {new_data['name']}, but I just updated my Pokedex! ✨ It is a {new_data['types'][0]} type."
+                    return self.external_service.make_conversational(response_data, original_question, "", "stats", user_profile)
+
             return self.external_service.make_conversational(
                 "I don't have specific data on that, but I can answer generally.", 
                 original_question, str(context.get('conversation_history', [])), "general", user_profile)
-
+        
         # 5. Generate Conversational Response
         if response_data:
             return self.external_service.make_conversational(response_data, original_question, "", topic, user_profile)

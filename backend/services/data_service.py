@@ -88,12 +88,33 @@ class DataService:
         return None
 
     def add_pokemon(self, pokemon_data):
-        """Add new Pokemon to dataframe"""
-        new_row = pd.DataFrame([pokemon_data])
-        self.df = pd.concat([self.df, new_row], ignore_index=True)
+        """Add new Pokemon to dataframe and SAVE to CSV"""
+        # Ensure correct columns
+        columns = ['Name', 'Type1', 'Type2', 'HP', 'Attack', 'Defense', 'Speed', 'Generation', 'Legendary']
+        
+        # Prepare row
+        row = {
+            'Name': pokemon_data['name'],
+            'Type1': pokemon_data['types'][0],
+            'Type2': pokemon_data['types'][1] if len(pokemon_data['types']) > 1 else None,
+            'HP': pokemon_data['stats']['hp'],
+            'Attack': pokemon_data['stats']['attack'],
+            'Defense': pokemon_data['stats']['defense'],
+            'Speed': pokemon_data['stats']['speed'],
+            'Generation': 0, # Default or Unknown
+            'Legendary': False
+        }
+        
+        new_df = pd.DataFrame([row])
+        self.df = pd.concat([self.df, new_df], ignore_index=True)
         self.pokemon_names = self.df['Name'].tolist()
-        # Re-save to CSV? Optionally yes, but for now in-memory is fine or we can append
-        # self.df.to_csv(self.csv_file, index=False)
+        
+        # Save to Disk
+        try:
+            self.df.to_csv(self.csv_file, index=False)
+            print(f"✅ Learned new Pokemon: {row['Name']} (Saved to CSV)")
+        except Exception as e:
+            print(f"❌ Failed to save new Pokemon: {e}")
 
     def _init_recommendation_system(self):
         """Initialize KNN model"""

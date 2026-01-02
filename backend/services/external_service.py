@@ -20,7 +20,7 @@ class ExternalService:
             print("⚠️ ExternalService: No OPENAI_API_KEY found")
 
     def make_conversational(self, data, user_question, context_str="", topic="general", user_profile=None):
-        """Standardized interface for generating responses"""
+        """Standardized interface for generating responses with Persona & Adaptive Length"""
         if not self.openai_client:
             return str(data) # Fallback
 
@@ -30,14 +30,20 @@ class ExternalService:
             if user_profile.get('name'): user_context += f"User: {user_profile['name']}. "
             if user_profile.get('fav_pokemon'): user_context += f"Fav Pokemon: {user_profile['fav_pokemon']}."
 
-        # Instructions based on topic
-        instructions = "Be friendly and enthusiastic."
-        if topic == 'battle': instructions = "Focus on strategy and type matchups."
-        elif topic == 'lore': instructions = "Be a storyteller. Tell myths and legends in detail."
-        elif topic == 'stats': instructions = "Be analytical about the stats."
-        elif topic == 'evolution': instructions = "Focus on growth and potential."
+        # Adaptive Instructions based on topic (LENGTH CONTROL)
+        # Default: Short and punchy
+        persona = "You are Omnidex, an enthusiastic Pokemon Professor. You love sharing knowledge! 🎓✨"
+        length_instr = "Keep it concise (1-2 sentences). Be direct."
+        
+        if topic in ['lore', 'story', 'history', 'origin']:
+            length_instr = "Be detailed and immersive. Tell a short story (3-4 sentences)."
+            persona += " You are a storyteller sharing ancient myths."
+        elif topic == 'battle': 
+            length_instr = "Focus on strategy. Be analytical but brief."
+        elif topic == 'evolution':
+            length_instr = "Sound excited about growth! Keep it brief."
 
-        prompt = f"""You are Omnidex, an AI Pokemon Professor.
+        prompt = f"""{persona}
 CONTEXT: {user_context}
 TOPIC: {topic.upper()}
 PREVIOUS CHAT:
@@ -49,16 +55,16 @@ DATA/INFO TO USE:
 {data}
 
 INSTRUCTIONS:
-{instructions}
-- Use 1-2 relevant emoji.
-- Keep it natural, NO raw JSON/Markdown tables unless necessary.
-- If it's a story/lore request, be detailed.
+- {length_instr}
+- Use 1-2 relevant emoji (e.g. 🔥 for fire, ⚡ for electric).
+- Be warm and encouraging.
+- If data is missing, admit it nicely and offer general advice.
 """
         try:
             response = self.openai_client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "You are Omnidex, a Pokemon expert."},
+                    {"role": "system", "content": "You are Omnidex, a friendly Pokemon Professor."},
                     {"role": "user", "content": prompt}
                 ]
             )
