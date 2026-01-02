@@ -118,10 +118,12 @@ Omnidex/
 ├── requirements.txt        # Python Dependencies
 ├── .env                    # API Keys (GitIgnored)
 ├── backend/
-│   └── pokemon_chatbot.py  # Core AI Logic (OpenAI, Search, ML)
+│   ├── services/           # Microservices (Intent, Data, External)
+│   └── pokemon_chatbot.py  # Orchestrator & Controller
 ├── data/
-│   ├── pokemon_data.csv    # Statistical Dataset
-│   └── learned_cache.json  # JSON Cache for Web Results
+│   ├── pokemon_data.csv    # Statistical Database
+│   ├── intents.json        # NLP Training Data
+│   └── type_chart.json     # Game Rules
 └── frontend/
     ├── templates/
     │   └── index.html      # Chat Interface (HTML)
