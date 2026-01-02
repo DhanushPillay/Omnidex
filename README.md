@@ -1,4 +1,4 @@
-# 🔴 Omnidex: The AI-Powered Pokémon Encyclopedia
+# Omnidex: The AI-Powered Pokémon Encyclopedia
 
 <div align="center">
 
@@ -17,37 +17,37 @@
 
 ---
 
-## 📖 Overview
+## Overview
 
-**Omnidex** is not just another Pokédex. It is a sophisticated AI agent that combines **Machine Learning (ML)**, **Vector Search (RAG)**, and **Large Language Models (LLMs)** to provide a truly interactive experience. 
+**Omnidex** is not just another Pokédex. It is a sophisticated AI agent that combines **Machine Learning (ML)**, **Vector Search (RAG)**, and **Large Language Models (LLMs)** to provide a truly interactive experience.
 
 Unlike traditional wikis, Omnidex understands natural language. You can ask about competitive strategies, deep lore, statistical comparisons, or even upload an image of a Pokémon to identify it. It uses **OpenAI's GPT-4o** to synthesize information from a local statistical database and real-time web searches into engaging, accurate narratives.
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 🧠 Intelligent Conversational AI
+### Intelligent Conversational AI
 *   **Natural Language Understanding**: Ask questions freely (e.g., *"Who is the strongest Fire type in Gen 1?"* or *"Tell me the tragic backstory of Cubone"*).
 *   **Context Awareness**: The AI remembers the conversation flow, allowing for follow-up questions without repeating context.
 *   **Persona-Based Responses**: Omnidex acts as an enthusiastic Pokémon Professor, tailoring responses to be engaging and educational.
 
-### 🔍 Deep Knowledge & Lore
+### Deep Knowledge & Lore
 *   **Hybrid Retrieval System**: Combines a local CSV dataset (stats, types, evolutions) with real-time **DuckDuckGo Web Search** to find obscure lore, anime history, and myths.
 *   **Learned Cache**: The system "learns" from web searches, caching high-quality lore to improve future response times and accuracy.
 *   **Fact-Checked Storytelling**: Filters out irrelevant game guides (like PokeMMO) to prioritize canonical lore from the games and anime.
 
-### ⚔️ Competitive Analysis Engine
+### Competitive Analysis Engine
 *   **Type Matchup Calculator**: Instantly calculates weaknesses, resistances, and immunities.
 *   **Stat Comparison**: Side-by-side comparison of any two Pokémon (e.g., *"Charizard vs. Blastoise"*).
 *   **Team Recommendations**: Uses **K-Nearest Neighbors (KNN)** to suggest similar Pokémon based on base stats and typing.
 
-### 👁️ Computer Vision (Vision AI)
+### Computer Vision (Vision AI)
 *   **Image Recognition**: Upload an image of any Pokémon, and Omnidex will use **GPT-4o Vision** to identify it and provide detailed information immediately.
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
@@ -61,7 +61,7 @@ Unlike traditional wikis, Omnidex understands natural language. You can ask abou
 
 ---
 
-## 🚀 Quick Start Guide
+## Quick Start Guide
 
 ### Prerequisites
 *   Python 3.9+
@@ -110,7 +110,7 @@ Unlike traditional wikis, Omnidex understands natural language. You can ask abou
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```bash
 Omnidex/
@@ -132,9 +132,9 @@ Omnidex/
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Contributions are what make the open-source community an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 1.  Fork the Project
 2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
@@ -144,7 +144,7 @@ Contributions are what make the open-source community such an amazing place to l
 
 ---
 
-## 📄 License
+## License
 
 Distributed under the **MIT License**. See [LICENSE](LICENSE) for more information.
 
@@ -152,6 +152,7 @@ Distributed under the **MIT License**. See [LICENSE](LICENSE) for more informati
 
 <div align="center">
 
-**Built with ❤️ using Python & OpenAI**
+**Built using Python & OpenAI**
 
 </div>
+
