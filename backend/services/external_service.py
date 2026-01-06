@@ -38,27 +38,34 @@ class ExternalService:
             if user_profile.get('fav_pokemon'): 
                 user_context += f"Their favorite Pokemon is {user_profile['fav_pokemon']}. "
 
-        # Build Pokemon database info
+        # Build Pokemon database info - handles single or multiple Pokemon
         db_info = "No Pokemon data available."
         if pokemon_data:
-            db_info = f"""
-POKEMON DATABASE INFO:
-- Name: {pokemon_data.get('name', 'Unknown')}
-- Type: {pokemon_data.get('type1', '?')}{' / ' + pokemon_data['type2'] if pokemon_data.get('type2') else ''}
-- Stats: HP {pokemon_data.get('hp', '?')}, Attack {pokemon_data.get('attack', '?')}, Defense {pokemon_data.get('defense', '?')}, Speed {pokemon_data.get('speed', '?')}
-- Generation: {pokemon_data.get('generation', '?')}
-- Legendary: {'Yes' if pokemon_data.get('legendary') else 'No'}
-"""
-            if pokemon_data.get('weak_to'):
-                db_info += f"- Weak to: {', '.join(pokemon_data['weak_to'])}\n"
-            if pokemon_data.get('strong_against'):
-                db_info += f"- Strong against: {', '.join(pokemon_data['strong_against'])}\n"
-            if pokemon_data.get('evolution'):
-                db_info += f"- Evolution: {pokemon_data['evolution']}\n"
-            if pokemon_data.get('similar_pokemon'):
-                db_info += f"- Similar Pokemon: {', '.join(pokemon_data['similar_pokemon'])}\n"
-            if pokemon_data.get('newly_learned'):
-                db_info += "- (This Pokemon was just learned from PokeAPI!)\n"
+            # Handle list (comparison) or single dict
+            if isinstance(pokemon_data, list):
+                pokemon_list = pokemon_data
+            else:
+                pokemon_list = [pokemon_data]
+            
+            if len(pokemon_list) > 0:
+                db_info = "\nPOKEMON DATABASE INFO:\n"
+                for i, poke in enumerate(pokemon_list, 1):
+                    if len(pokemon_list) > 1:
+                        db_info += f"\n--- POKEMON #{i} ---\n"
+                    db_info += f"- Name: {poke.get('name', 'Unknown')}\n"
+                    type_str = poke.get('type1', '?')
+                    if poke.get('type2'):
+                        type_str += f" / {poke['type2']}"
+                    db_info += f"- Type: {type_str}\n"
+                    db_info += f"- Stats: HP {poke.get('hp', '?')}, Attack {poke.get('attack', '?')}, Defense {poke.get('defense', '?')}, Speed {poke.get('speed', '?')}\n"
+                    db_info += f"- Generation: {poke.get('generation', '?')}\n"
+                    db_info += f"- Legendary: {'Yes' if poke.get('legendary') else 'No'}\n"
+                    if poke.get('weak_to'):
+                        db_info += f"- Weak to: {', '.join(poke['weak_to'])}\n"
+                    if poke.get('strong_against'):
+                        db_info += f"- Strong against: {', '.join(poke['strong_against'])}\n"
+                    if poke.get('newly_learned'):
+                        db_info += "- (Just learned from PokeAPI!)\n"
 
         # Build web search results
         web_info = ""
