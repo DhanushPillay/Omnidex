@@ -2,27 +2,27 @@ import os
 import requests
 import json
 import base64
-from openai import OpenAI
+from groq import Groq
 from duckduckgo_search import DDGS
 
 class ExternalService:
-    def __init__(self, openai_api_key=None):
-        self.openai_client = None
-        self.api_key = openai_api_key or os.environ.get('OPENAI_API_KEY')
+    def __init__(self, groq_api_key=None):
+        self.groq_client = None
+        self.api_key = groq_api_key or os.environ.get('GROQ_API_KEY')
         
         if self.api_key:
             try:
-                self.openai_client = OpenAI(api_key=self.api_key)
-                print("✅ ExternalService: OpenAI enabled")
+                self.groq_client = Groq(api_key=self.api_key)
+                print("✅ ExternalService: Groq enabled")
             except Exception as e:
                 print(f"⚠️ ExternalService error: {e}")
         else:
-            print("⚠️ ExternalService: No OPENAI_API_KEY found")
+            print("⚠️ ExternalService: No GROQ_API_KEY found")
 
     def make_conversational(self, data, user_question, context_str="", topic="general", user_profile=None):
         """Standardized interface for generating responses with Persona & Adaptive Length"""
-        if not self.openai_client:
-            return str(data) # Fallback
+        if not self.groq_client:
+            return str(data)  # Fallback
 
         # Simplify user context
         user_context = ""
@@ -32,45 +32,46 @@ class ExternalService:
 
         # Adaptive Instructions based on topic (LENGTH CONTROL)
         # Default: Short and punchy
-        persona = "You are Omnidex, an enthusiastic Pokemon Professor. You love sharing knowledge! 🎓✨"
+        persona = "You are Omnidex, a friendly Pokemon expert and enthusiast. You talk like a helpful friend, not a teacher. Never say 'dear student' or address the user formally."
         length_instr = "Keep it concise (1-2 sentences). Be direct."
         
         if topic in ['lore', 'story', 'history', 'origin']:
             length_instr = "Be detailed and immersive. Tell a short story (3-4 sentences)."
-            persona += " You are a storyteller sharing ancient myths."
+            persona += " Share stories like an excited friend, not a lecturer."
         elif topic == 'battle': 
             length_instr = "Focus on strategy. Be analytical but brief."
         elif topic == 'evolution':
             length_instr = "Sound excited about growth! Keep it brief."
 
-        prompt = f"""{persona}
-CONTEXT: {user_context}
+        prompt = f"""You are Omnidex, a friendly Pokemon expert.
+
+IMPORTANT RULES:
+1. You ONLY talk about Pokemon. Nothing else.
+2. Use the DATA provided below - do not make up random information.
+3. Talk casually like a friend, not a teacher.
+4. {length_instr}
+5. Use 1-2 relevant emoji.
+
+USER CONTEXT: {user_context}
 TOPIC: {topic.upper()}
-PREVIOUS CHAT:
-{context_str}
 
-USER ASKED: "{user_question}"
+USER QUESTION: "{user_question}"
 
-DATA/INFO TO USE:
+POKEMON DATA TO USE:
 {data}
 
-INSTRUCTIONS:
-- {length_instr}
-- Use 1-2 relevant emoji (e.g. 🔥 for fire, ⚡ for electric).
-- Be warm and encouraging.
-- If data is missing, admit it nicely and offer general advice.
-"""
+Respond ONLY about the Pokemon topic. If the data is empty or irrelevant, say you don't have that information about this Pokemon."""
         try:
-            response = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",
+            response = self.groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
                 messages=[
-                    {"role": "system", "content": "You are Omnidex, a friendly Pokemon Professor."},
+                    {"role": "system", "content": "You are Omnidex, a friendly Pokemon expert. Talk casually like a friend. Never use formal language like 'dear student'."},
                     {"role": "user", "content": prompt}
                 ]
             )
             return response.choices[0].message.content
         except Exception as e:
-            print(f"❌ OpenAI Gen error: {e}")
+            print(f"❌ Groq Gen error: {e}")
             return str(data)
 
     def search_web(self, query, max_results=5):
@@ -88,8 +89,8 @@ INSTRUCTIONS:
             return []
 
     def analyze_image(self, image_path):
-        """Analyze image with GPT-4o"""
-        if not self.openai_client:
+        """Analyze image with Groq Vision (llama-3.2-90b-vision-preview)"""
+        if not self.groq_client:
             return {"error": "Vision AI not enabled"}
 
         try:
@@ -99,8 +100,8 @@ INSTRUCTIONS:
             prompt = """Identify the Pokemon in this image. 
 Return strictly JSON: {"name": "Name", "description": "Brief desc", "is_shiny": bool}"""
 
-            response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
+            response = self.groq_client.chat.completions.create(
+                model="llama-3.2-90b-vision-preview",
                 messages=[
                     {
                         "role": "user", 

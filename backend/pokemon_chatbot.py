@@ -39,10 +39,15 @@ class PokemonChatbot:
                  "Hello! I am Omnidex. Ask me about Pokemon stats, lore, or recommendations.",
                  original_question, topic="general", user_profile=user_profile)
 
-        # 2. Context Resolution
-        resolved = self._resolve_pronoun(question_lower, context)
-        if resolved:
-            question_lower = question_lower.replace('it', resolved).replace('this pokemon', resolved)
+        # 2. Context Resolution - Replace pronouns with actual Pokemon name
+        last_pokemon = context.get('last_pokemon')
+        if last_pokemon:
+            # Handle various pronoun patterns
+            pronoun_patterns = ['its', 'it\'s', 'it', 'this pokemon', 'this one', 'that pokemon', 'that one', 'this', 'that']
+            for pattern in pronoun_patterns:
+                if pattern in question_lower:
+                    question_lower = question_lower.replace(pattern, last_pokemon.lower())
+                    break  # Only replace once
 
         # 3. Intent Classification
         intent, confidence = self.intent_service.predict(question_lower)
