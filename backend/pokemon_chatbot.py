@@ -20,7 +20,7 @@ class PokemonChatbot:
         self.TYPE_CHART = self.data_service.type_chart
 
     def answer_question(self, question, context, user_profile=None):
-        """Main entry point for chat"""
+        """Main entry point - Groq gets ALL data sources"""
         original_question = question
         question_lower = question.lower().strip()
 
@@ -32,154 +32,111 @@ class PokemonChatbot:
                 user_profile['name'] = name
                 return f"Nice to meet you, {name}! 👋 I'll remember that."
 
-        # Greetings
+        # Quick greetings
         greetings = ['hi', 'hello', 'hey', 'yo']
         if any(question_lower.startswith(g) for g in greetings) and len(question_lower) < 10:
-             return self.external_service.make_conversational(
-                 "Hello! I am Omnidex. Ask me about Pokemon stats, lore, or recommendations.",
-                 original_question, topic="general", user_profile=user_profile)
+            return self.external_service.generate_response(
+                question=original_question,
+                pokemon_data=None,
+                web_results=None,
+                context=context,
+                user_profile=user_profile
+            )
 
         # 2. Context Resolution - Replace pronouns with actual Pokemon name
         last_pokemon = context.get('last_pokemon')
         if last_pokemon:
-            # Handle various pronoun patterns
-            pronoun_patterns = ['its', 'it\'s', 'it', 'this pokemon', 'this one', 'that pokemon', 'that one', 'this', 'that']
+            pronoun_patterns = ['its', "it's", 'it', 'this pokemon', 'this one', 'that pokemon', 'that one', 'this', 'that']
             for pattern in pronoun_patterns:
                 if pattern in question_lower:
                     question_lower = question_lower.replace(pattern, last_pokemon.lower())
-                    break  # Only replace once
+                    break
 
-        # 3. Intent Classification
-        intent, confidence = self.intent_service.predict(question_lower)
+        # 3. Extract Pokemon name from question
+        pokemon_name = self._extract_pokemon_name(question_lower)
         
-        # Override for Lore
-        if any(w in question_lower for w in ['story', 'lore', 'legend', 'history', 'origin']):
-            intent = "pokemon_lore"
-
-        print(f"🤖 Intent: {intent} (Conf: {confidence:.2f})")
-        context['last_intent'] = intent
+        # If no name found, check if user is asking follow-up about last Pokemon
+        if not pokemon_name and last_pokemon:
+            pokemon_name = last_pokemon
         
-        # 4. Dispatch Logic
-        response_data = ""
-        topic = "general"
-
-        # --- HANDLERS ---
-        if intent == "pokemon_info":
-            name = self._extract_pokemon_name(question_lower)
-            if name:
-                poke = self.data_service.get_pokemon_by_name(name)
-                if poke is not None:
-                    context['last_pokemon'] = name
-                    response_data = self._format_pokemon_info(poke)
-                    topic = "stats"
-            else:
-                # SELF-LEARNING: Try to find unknowns on valid API
-                potential_name = None
-                # Basic heuristic: look for capitalized words that aren't common knowns
-                words = [w for w in question.split() if w[0].isupper() and len(w) > 3]
-                if words:
-                     potential_name = words[-1] # Take the last capitalized word as candidate
+        # 4. Gather ALL data for Groq
+        pokemon_data = None
+        web_results = None
+        
+        # Get Pokemon data from database
+        if pokemon_name:
+            context['last_pokemon'] = pokemon_name
+            poke = self.data_service.get_pokemon_by_name(pokemon_name)
+            
+            if poke is not None:
+                # Build comprehensive Pokemon data object
+                pokemon_data = {
+                    'name': poke['Name'],
+                    'type1': poke['Type1'],
+                    'type2': poke['Type2'] if poke['Type2'] else None,
+                    'hp': int(poke['HP']),
+                    'attack': int(poke['Attack']),
+                    'defense': int(poke['Defense']),
+                    'speed': int(poke['Speed']),
+                    'generation': int(poke['Generation']),
+                    'legendary': bool(poke['Legendary'])
+                }
                 
-                if potential_name:
-                    print(f"🧠 Unknown Pokemon '{potential_name}' detected. Learning...")
-                    new_data = self.external_service.fetch_from_pokeapi(potential_name)
-                    if new_data:
-                        self.data_service.add_pokemon(new_data)
-                        context['last_pokemon'] = new_data['name']
-                        response_data = f"I didn't know about {new_data['name']}, but I just updated my Pokedex! ✨ It is a {new_data['types'][0]} type."
-                        topic = "stats"
-                    else:
-                        response_data = "Which Pokemon are you asking about?"
-                else:
-                    response_data = "Which Pokemon are you asking about?"
-
-        elif intent == "pokemon_lore":
-            name = self._extract_pokemon_name(question_lower) or context.get('last_pokemon')
-            if name:
-                context['last_pokemon'] = name
-                # Web Search for Lore
-                results = self.external_service.search_web(f"{name} Pokemon lore history")
-                response_data = "\n".join([f"- {r['body']}" for r in results])
-                topic = "lore"
-            else:
-                response_data = "I can tell you stories! Which Pokemon?"
-
-        elif intent == "recommend":
-            name = self._extract_pokemon_name(question_lower)
-            if name:
-                similar, matched = self.data_service.get_similar_pokemon(name)
+                # Add type effectiveness
+                if poke['Type1'] in self.data_service.type_chart:
+                    type_info = self.data_service.type_chart[poke['Type1']]
+                    pokemon_data['weak_to'] = type_info.get('weak', [])
+                    pokemon_data['strong_against'] = type_info.get('strong', [])
+                
+                # Add evolution data if available
+                if poke['Name'] in self.data_service.evolution_data:
+                    pokemon_data['evolution'] = self.data_service.evolution_data[poke['Name']]
+                
+                # Get similar Pokemon
+                similar, _ = self.data_service.get_similar_pokemon(pokemon_name, n=3)
                 if similar:
-                    response_data = f"Pokemon similar to {matched}: " + ", ".join([s['name'] for s in similar])
-                    topic = "recommendation"
-
-        elif intent == "weakness":
-            name = self._extract_pokemon_name(question_lower)
-            if name:
-                # Logic for weakness (can be moved to DataService, but doing here for brevity)
-                poke = self.data_service.get_pokemon_by_name(name)
-                if poke is not None:
-                    t1 = poke['Type1']
-                    weakmap = self.data_service.type_chart.get(t1, {}).get('weak', [])
-                    response_data = f"{name} ({t1}) is weak to: {', '.join(weakmap)}"
-                    topic = "battle"
-
-        elif intent and intent.startswith("context_"):
-            last_poke = context.get('last_pokemon')
-            if last_poke:
-                if "stat" in intent:
-                    poke = self.data_service.get_pokemon_by_name(last_poke)
-                    response_data = f"{last_poke} Stats: HP {poke['HP']}, Atk {poke['Attack']}, Def {poke['Defense']}."
-                    topic = "stats"
-                elif "evolution" in intent:
-                    # Retrieve from evo json
-                    chain = self.data_service.evolution_data.get(last_poke)
-                    response_data = f"Evolution info for {last_poke}: {chain}"
-                    topic = "evolution"
+                    pokemon_data['similar_pokemon'] = [s['name'] for s in similar]
             else:
-                response_data = "I'm not sure which Pokemon we are talking about."
-
-        else:
-            # Fallback / General Knowledge
-            # SELF-LEARNING CHECK (Last Resort)
-            potential_name = None
-            
-            # 1. Check for capitalized words (legacy)
-            words = [w for w in question.split() if w[0].isupper() and len(w) > 3]
-            if words:
-                 potential_name = words[-1]
-            
-            # 2. If short query, assume it might be a name (even lowercase)
-            # e.g., "lechonk", "who is lechonk"
-            if not potential_name:
-                clean_q = question.strip().lower()
-                # Remove common prefixes
-                for prefix in ["who is ", "what is ", "tell me about ", "show me "]:
-                    if clean_q.startswith(prefix):
-                        clean_q = clean_q.replace(prefix, "")
-                
-                # If what remains is a single word
-                if " " not in clean_q.strip() and len(clean_q) > 3:
-                     potential_name = clean_q.strip().title()
-
-            if potential_name:
-                print(f"🧠 Unknown Pokemon '{potential_name}' detected. Learning...")
-                new_data = self.external_service.fetch_from_pokeapi(potential_name)
+                # Try to learn from PokeAPI
+                print(f"🧠 Unknown Pokemon '{pokemon_name}' - fetching from PokeAPI...")
+                new_data = self.external_service.fetch_from_pokeapi(pokemon_name)
                 if new_data:
                     self.data_service.add_pokemon(new_data)
-                    context['last_pokemon'] = new_data['name']
-                    # Recursive call now that we have it? Or just return success
-                    response_data = f"I didn't know about {new_data['name']}, but I just updated my Pokedex! ✨ It is a {new_data['types'][0]} type."
-                    return self.external_service.make_conversational(response_data, original_question, "", "stats", user_profile)
-
-            return self.external_service.make_conversational(
-                "I don't have specific data on that, but I can answer generally.", 
-                original_question, str(context.get('conversation_history', [])), "general", user_profile)
+                    pokemon_data = {
+                        'name': new_data['name'],
+                        'type1': new_data['types'][0],
+                        'type2': new_data['types'][1] if len(new_data['types']) > 1 else None,
+                        'hp': new_data['stats'].get('hp', 0),
+                        'attack': new_data['stats'].get('attack', 0),
+                        'defense': new_data['stats'].get('defense', 0),
+                        'speed': new_data['stats'].get('speed', 0),
+                        'newly_learned': True
+                    }
         
-        # 5. Generate Conversational Response
-        if response_data:
-            return self.external_service.make_conversational(response_data, original_question, "", topic, user_profile)
+        # 5. Search internet for lore/story/detailed info
+        story_keywords = ['story', 'lore', 'legend', 'history', 'origin', 'myth', 'backstory', 'tale']
+        needs_web_search = any(kw in question_lower for kw in story_keywords)
         
-        return "I didn't quite understand that. Try asking about a specific Pokemon!"
+        # Also search if asking about something we might not have in DB
+        general_keywords = ['why', 'how did', 'when was', 'who created', 'where does']
+        if any(kw in question_lower for kw in general_keywords):
+            needs_web_search = True
+        
+        if needs_web_search and pokemon_name:
+            print(f"🌐 Searching web for: {pokemon_name}")
+            search_query = f"{pokemon_name} Pokemon {' '.join([kw for kw in story_keywords if kw in question_lower])}"
+            web_results = self.external_service.search_web(search_query)
+        
+        # 6. Let Groq synthesize EVERYTHING
+        response = self.external_service.generate_response(
+            question=original_question,
+            pokemon_data=pokemon_data,
+            web_results=web_results,
+            context=context,
+            user_profile=user_profile
+        )
+        
+        return response
 
     def analyze_image(self, image_path):
         """Delegate to ExternalService"""
@@ -198,11 +155,6 @@ class PokemonChatbot:
     def _format_pokemon_info(self, row):
         return f"{row['Name']}: {row['Type1']} type. HP: {row['HP']}, Atk: {row['Attack']}, Def: {row['Defense']}."
 
-    def _resolve_pronoun(self, text, context):
-        if 'it' in text or 'this' in text:
-            return context.get('last_pokemon')
-        return None
-    
     # Compatibility methods for app.py
     def _get_sprite_url(self, name):
         return self.external_service.get_sprite_url(name)

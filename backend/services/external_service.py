@@ -3,7 +3,7 @@ import requests
 import json
 import base64
 from groq import Groq
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 class ExternalService:
     def __init__(self, groq_api_key=None):
@@ -19,71 +19,146 @@ class ExternalService:
         else:
             print("⚠️ ExternalService: No GROQ_API_KEY found")
 
-    def make_conversational(self, data, user_question, context_str="", topic="general", user_profile=None):
-        """Standardized interface for generating responses with Persona & Adaptive Length"""
+    def generate_response(self, question, pokemon_data=None, web_results=None, context=None, user_profile=None):
+        """
+        UNIFIED RESPONSE GENERATOR - Groq gets ALL data sources:
+        - pokemon_data: Dict with stats, types, weaknesses from database
+        - web_results: List of web search results for lore/stories
+        - context: Conversation context (last_pokemon, history)
+        - user_profile: User preferences
+        """
         if not self.groq_client:
-            return str(data)  # Fallback
+            return "I'm having trouble connecting. Please try again!"
 
-        # Simplify user context
+        # Build user context
         user_context = ""
         if user_profile:
-            if user_profile.get('name'): user_context += f"User: {user_profile['name']}. "
-            if user_profile.get('fav_pokemon'): user_context += f"Fav Pokemon: {user_profile['fav_pokemon']}."
+            if user_profile.get('name'): 
+                user_context += f"The user's name is {user_profile['name']}. "
+            if user_profile.get('fav_pokemon'): 
+                user_context += f"Their favorite Pokemon is {user_profile['fav_pokemon']}. "
 
-        # Adaptive Instructions based on topic (LENGTH CONTROL)
-        # Default: Short and punchy
-        persona = "You are Omnidex, a friendly Pokemon expert and enthusiast. You talk like a helpful friend, not a teacher. Never say 'dear student' or address the user formally."
-        length_instr = "Keep it concise (1-2 sentences). Be direct."
+        # Build Pokemon database info
+        db_info = "No Pokemon data available."
+        if pokemon_data:
+            db_info = f"""
+POKEMON DATABASE INFO:
+- Name: {pokemon_data.get('name', 'Unknown')}
+- Type: {pokemon_data.get('type1', '?')}{' / ' + pokemon_data['type2'] if pokemon_data.get('type2') else ''}
+- Stats: HP {pokemon_data.get('hp', '?')}, Attack {pokemon_data.get('attack', '?')}, Defense {pokemon_data.get('defense', '?')}, Speed {pokemon_data.get('speed', '?')}
+- Generation: {pokemon_data.get('generation', '?')}
+- Legendary: {'Yes' if pokemon_data.get('legendary') else 'No'}
+"""
+            if pokemon_data.get('weak_to'):
+                db_info += f"- Weak to: {', '.join(pokemon_data['weak_to'])}\n"
+            if pokemon_data.get('strong_against'):
+                db_info += f"- Strong against: {', '.join(pokemon_data['strong_against'])}\n"
+            if pokemon_data.get('evolution'):
+                db_info += f"- Evolution: {pokemon_data['evolution']}\n"
+            if pokemon_data.get('similar_pokemon'):
+                db_info += f"- Similar Pokemon: {', '.join(pokemon_data['similar_pokemon'])}\n"
+            if pokemon_data.get('newly_learned'):
+                db_info += "- (This Pokemon was just learned from PokeAPI!)\n"
+
+        # Build web search results
+        web_info = ""
+        if web_results and len(web_results) > 0:
+            web_info = "\nINTERNET SEARCH RESULTS (Lore/Stories):\n"
+            for i, result in enumerate(web_results[:3], 1):
+                title = result.get('title', 'Unknown')
+                body = result.get('body', '')
+                web_info += f"{i}. {title}: {body}\n"
+
+        # Build conversation context
+        context_info = ""
+        if context:
+            if context.get('last_pokemon'):
+                context_info += f"Previously discussed Pokemon: {context['last_pokemon']}\n"
+
+        # Determine response style based on question type
+        story_keywords = ['story', 'lore', 'legend', 'history', 'origin', 'myth', 'tale']
+        is_story = any(kw in question.lower() for kw in story_keywords)
         
-        if topic in ['lore', 'story', 'history', 'origin']:
-            length_instr = "Be detailed and immersive. Tell a short story (3-4 sentences)."
-            persona += " Share stories like an excited friend, not a lecturer."
-        elif topic == 'battle': 
-            length_instr = "Focus on strategy. Be analytical but brief."
-        elif topic == 'evolution':
-            length_instr = "Sound excited about growth! Keep it brief."
+        if is_story:
+            style_instruction = "Tell an engaging story (3-4 sentences). Be immersive and exciting!"
+        else:
+            style_instruction = "Be concise (1-2 sentences). Get to the point quickly."
 
-        prompt = f"""You are Omnidex, a friendly Pokemon expert.
+        # Build the MEGA prompt
+        prompt = f"""You are Omnidex, a friendly and knowledgeable Pokemon expert. You're chatting with a friend about Pokemon.
 
-IMPORTANT RULES:
-1. You ONLY talk about Pokemon. Nothing else.
-2. Use the DATA provided below - do not make up random information.
-3. Talk casually like a friend, not a teacher.
-4. {length_instr}
-5. Use 1-2 relevant emoji.
+RULES:
+1. ONLY discuss Pokemon topics. Ignore anything non-Pokemon.
+2. USE the data provided below - don't invent facts.
+3. Talk casually and friendly. Never say "dear student" or be formal.
+4. {style_instruction}
+5. Use 1-2 relevant emoji (🔥⚡💧🌿 etc).
+6. If you don't have info, admit it honestly.
 
-USER CONTEXT: {user_context}
-TOPIC: {topic.upper()}
+{user_context}
+{context_info}
 
-USER QUESTION: "{user_question}"
+=== ALL AVAILABLE DATA ===
+{db_info}
+{web_info}
+===========================
 
-POKEMON DATA TO USE:
-{data}
+USER'S QUESTION: "{question}"
 
-Respond ONLY about the Pokemon topic. If the data is empty or irrelevant, say you don't have that information about this Pokemon."""
+Now respond naturally as Omnidex, using the data above:"""
+
         try:
             response = self.groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
-                    {"role": "system", "content": "You are Omnidex, a friendly Pokemon expert. Talk casually like a friend. Never use formal language like 'dear student'."},
+                    {"role": "system", "content": "You are Omnidex, a friendly Pokemon expert. Be casual, helpful, and stick to Pokemon topics only."},
                     {"role": "user", "content": prompt}
-                ]
+                ],
+                temperature=0.7,
+                max_tokens=500
             )
             return response.choices[0].message.content
         except Exception as e:
-            print(f"❌ Groq Gen error: {e}")
-            return str(data)
+            print(f"❌ Groq error: {e}")
+            # Fallback to simple response
+            if pokemon_data:
+                return f"{pokemon_data.get('name', 'This Pokemon')} is a {pokemon_data.get('type1', 'mystery')} type! ⚡"
+            return "I'm having trouble right now. Try asking again!"
+
+    # Keep old method for backwards compatibility
+    def make_conversational(self, data, user_question, context_str="", topic="general", user_profile=None):
+        """Legacy method - redirects to generate_response"""
+        return self.generate_response(
+            question=user_question,
+            pokemon_data={'raw_info': str(data)} if data else None,
+            web_results=None,
+            context=None,
+            user_profile=user_profile
+        )
 
     def search_web(self, query, max_results=5):
-        """DuckDuckGo Search"""
-        print(f"🔍 Searching: {query}")
+        """DuckDuckGo Search with Pokemon-focused filtering"""
+        # Make query more specific to Pokemon
+        search_query = f"{query} site:bulbapedia.bulbagarden.net OR site:pokemon.fandom.com"
+        print(f"🔍 Searching: {search_query}")
         try:
-            with DDGS() as ddgs:
-                # Basic text search
-                results = list(ddgs.text(query, max_results=max_results))
-                # Filter spam
-                results = [r for r in results if "pokemmo" not in r['title'].lower()]
-                return results
+            ddgs = DDGS()
+            results = list(ddgs.text(search_query, max_results=max_results))
+            
+            # Filter for Pokemon-related results only
+            pokemon_keywords = ['pokemon', 'pokémon', 'bulbapedia', 'pokedex', 'trainer', 'legendary', 'evolution']
+            filtered = []
+            for r in results:
+                title_lower = r.get('title', '').lower()
+                body_lower = r.get('body', '').lower()
+                # Check if result is Pokemon-related
+                if any(kw in title_lower or kw in body_lower for kw in pokemon_keywords):
+                    # Filter out spam
+                    if 'pokemmo' not in title_lower and 'walkthrough' not in title_lower:
+                        filtered.append(r)
+            
+            print(f"✅ Found {len(filtered)} Pokemon-related results")
+            return filtered if filtered else results[:3]  # Fallback to top 3 if no filtered results
         except Exception as e:
             print(f"❌ Search error: {e}")
             return []
